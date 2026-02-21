@@ -17,9 +17,7 @@ public class BattleshipHub : Hub
         _sessions = sessions;
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
-    {
-        // Future: handle disconnection / reconnect logic here
-        return base.OnDisconnectedAsync(exception);
-    }
+    // Disconnect detection is handled by GameCircuitHandler (a scoped CircuitHandler),
+    // which fires on OnConnectionDownAsync / OnConnectionUpAsync within the player's
+    // Blazor circuit — no hub-level disconnect logic needed here.
 }

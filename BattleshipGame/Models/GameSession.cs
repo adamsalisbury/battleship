@@ -350,6 +350,77 @@ public class GameSession
         playerName == Host?.Name ? Host.Board :
         playerName == Guest?.Name ? Guest.Board : null;
 
+    // ─── Disconnect / Reconnect ──────────────────────────────────────────────
+
+    /// <summary>
+    /// How long a disconnected player has to reconnect manually (via URL) before
+    /// their absence is considered permanent.
+    /// </summary>
+    private static readonly TimeSpan DisconnectTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Marks the named player as disconnected and notifies both circuits.
+    /// Called by <see cref="BattleshipGame.Services.GameCircuitHandler"/> when the
+    /// player's Blazor circuit connection drops.
+    /// Returns false if the player is not found in this session.
+    /// </summary>
+    public bool MarkPlayerDisconnected(string playerName)
+    {
+        lock (_lock)
+        {
+            var player = GetPlayerByName(playerName);
+            if (player is null) return false;
+            player.MarkDisconnected();
+            Touch();
+        }
+        RaiseStateChanged();
+        return true;
+    }
+
+    /// <summary>
+    /// Marks the named player as reconnected after they navigate back to the game URL.
+    /// The supplied token must match the player's stored token to prevent slot hijacking.
+    /// Returns false if the player is not found, the token is wrong, or no disconnect
+    /// is recorded (idempotent — already reconnected is fine, just returns false).
+    /// </summary>
+    public bool MarkPlayerReconnected(string playerName, string token)
+    {
+        lock (_lock)
+        {
+            var player = GetPlayerByName(playerName);
+            if (player is null) return false;
+            if (player.ConnectionId != token) return false;
+            if (!player.IsDisconnected) return false;
+            player.MarkReconnected();
+            Touch();
+        }
+        RaiseStateChanged();
+        return true;
+    }
+
+    /// <summary>Returns true if the named player is currently marked as disconnected.</summary>
+    public bool IsPlayerDisconnected(string playerName) =>
+        GetPlayerByName(playerName)?.IsDisconnected == true;
+
+    /// <summary>Returns true if the opponent of the named player is currently disconnected.</summary>
+    public bool IsOpponentDisconnected(string myPlayerName)
+    {
+        var opponent = myPlayerName == Host?.Name ? Guest : Host;
+        return opponent?.IsDisconnected == true;
+    }
+
+    /// <summary>
+    /// Returns true if the named player has been disconnected longer than
+    /// <see cref="DisconnectTimeout"/>, meaning manual reconnection is no longer valid.
+    /// </summary>
+    public bool IsDisconnectExpired(string playerName)
+    {
+        var player = GetPlayerByName(playerName);
+        if (player?.IsDisconnected != true || player.DisconnectedAt is null)
+            return false;
+        return DateTime.UtcNow - player.DisconnectedAt.Value > DisconnectTimeout;
+    }
+
     // ─── Private helpers ─────────────────────────────────────────────────────
 
     private Player? _rematchFirstPlayer;
