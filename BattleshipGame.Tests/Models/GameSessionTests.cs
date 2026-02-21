@@ -145,4 +145,135 @@ public class GameSessionTests
         session.GetPlayerByName("Alice").Should().BeSameAs(alice);
         session.GetPlayerByName("Nobody").Should().BeNull();
     }
+
+    // ─── Disconnect / Reconnect tests ────────────────────────────────────────
+
+    [Fact]
+    public void MarkPlayerDisconnected_SetsIsDisconnectedAndFiresEvent()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+        session.AddGuest(new Player("Bob", "tok-b", isHost: false));
+
+        var eventFired = false;
+        session.StateChanged += () => eventFired = true;
+
+        var result = session.MarkPlayerDisconnected("Alice");
+
+        result.Should().BeTrue();
+        session.Host!.IsDisconnected.Should().BeTrue();
+        session.Host.DisconnectedAt.Should().NotBeNull();
+        eventFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MarkPlayerDisconnected_UnknownPlayer_ReturnsFalse()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+
+        var result = session.MarkPlayerDisconnected("Nobody");
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MarkPlayerReconnected_CorrectToken_ClearsDisconnectState()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+        session.AddGuest(new Player("Bob", "tok-b", isHost: false));
+        session.MarkPlayerDisconnected("Alice");
+
+        var result = session.MarkPlayerReconnected("Alice", "tok-a");
+
+        result.Should().BeTrue();
+        session.Host!.IsDisconnected.Should().BeFalse();
+        session.Host.DisconnectedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void MarkPlayerReconnected_WrongToken_ReturnsFalse()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+        session.AddGuest(new Player("Bob", "tok-b", isHost: false));
+        session.MarkPlayerDisconnected("Alice");
+
+        var result = session.MarkPlayerReconnected("Alice", "wrong-token");
+
+        result.Should().BeFalse();
+        session.Host!.IsDisconnected.Should().BeTrue(); // still disconnected
+    }
+
+    [Fact]
+    public void MarkPlayerReconnected_NotDisconnected_ReturnsFalse()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+        session.AddGuest(new Player("Bob", "tok-b", isHost: false));
+
+        // Alice is not disconnected — reconnect call should be a no-op
+        var result = session.MarkPlayerReconnected("Alice", "tok-a");
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsOpponentDisconnected_ReturnsTrueWhenOpponentIsGone()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+        session.AddGuest(new Player("Bob", "tok-b", isHost: false));
+
+        session.MarkPlayerDisconnected("Bob");
+
+        session.IsOpponentDisconnected("Alice").Should().BeTrue();
+        session.IsOpponentDisconnected("Bob").Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsDisconnectExpired_FalseWhenDisconnectedRecently()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+        session.AddGuest(new Player("Bob", "tok-b", isHost: false));
+
+        session.MarkPlayerDisconnected("Alice");
+
+        // Just disconnected — should not be expired yet
+        session.IsDisconnectExpired("Alice").Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsDisconnectExpired_TrueWhenDisconnectedAtIsOld()
+    {
+        var session = new GameSession("CODE");
+        session.AddHost(new Player("Alice", "tok-a", isHost: true));
+        session.AddGuest(new Player("Bob", "tok-b", isHost: false));
+
+        session.MarkPlayerDisconnected("Alice");
+
+        // Backdate the DisconnectedAt to simulate 6 minutes ago
+        typeof(Player)
+            .GetProperty("DisconnectedAt")!
+            .SetValue(session.Host, DateTime.UtcNow.AddMinutes(-6));
+
+        session.IsDisconnectExpired("Alice").Should().BeTrue();
+    }
+
+    [Fact]
+    public void PlayerCircuitTracker_SetsAndReadsProperties()
+    {
+        var tracker = new BattleshipGame.Services.PlayerCircuitTracker
+        {
+            SessionCode = "ABCD",
+            PlayerName = "Alice",
+            Token = "tok-abc"
+        };
+
+        tracker.SessionCode.Should().Be("ABCD");
+        tracker.PlayerName.Should().Be("Alice");
+        tracker.Token.Should().Be("tok-abc");
+    }
 }
