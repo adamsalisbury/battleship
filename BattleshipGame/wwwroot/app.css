@@ -724,6 +724,19 @@ a:hover { text-decoration: underline; }
 
 /* ─── Own grid — opponent's missed shot (grey dot) ────────────── */
 .cell-own-miss { background: var(--bg-card); }
+.cell-own-miss::before {
+    content: "";
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(138, 155, 184, 0.65);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    animation: missRipple 0.65s ease-out both;
+    pointer-events: none;
+}
 .cell-own-miss::after {
     content: "";
     position: absolute;
@@ -734,38 +747,50 @@ a:hover { text-decoration: underline; }
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    animation: dotPopIn 0.25s 0.12s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 
 /* ─── Own grid — opponent hit your ship ──────────────────────── */
 .cell-own-hit {
     background: rgba(180, 20, 20, 0.55);
 }
+.cell-own-hit::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 80, 0, 0.82);
+    animation: hitBurst 0.55s ease-out both;
+    pointer-events: none;
+}
 .cell-own-hit::after {
     content: "✕";
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0);
     font-size: 18px;
     font-weight: 700;
     color: rgba(255, 120, 120, 0.95);
     line-height: 1;
+    animation: crossPopIn 0.3s 0.12s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 
 /* ─── Own grid — opponent sunk one of your ships ─────────────── */
 .cell-own-sunk {
     background: rgba(140, 10, 10, 0.80);
+    animation: sunkFlash 0.8s ease-out both;
 }
 .cell-own-sunk::after {
     content: "✕";
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0);
     font-size: 18px;
     font-weight: 700;
     color: rgba(255, 140, 140, 0.9);
     line-height: 1;
+    animation: crossPopIn 0.35s 0.18s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 
 /* ─── Enemy grid — cursor overrides ──────────────────────────── */
@@ -775,14 +800,46 @@ a:hover { text-decoration: underline; }
 .cell-enemy-unknown { background: var(--bg-panel); }
 
 /* ─── Enemy grid — unknown and targetable (my turn) ──────────── */
-.cell-enemy-targetable { cursor: crosshair; }
+.cell-enemy-targetable {
+    cursor: crosshair;
+    transition: background 80ms ease, box-shadow 80ms ease;
+}
 .cell-enemy-targetable:hover {
-    background: rgba(42, 122, 255, 0.25);
-    box-shadow: inset 0 0 0 2px rgba(42, 122, 255, 0.55);
+    background: rgba(42, 122, 255, 0.28);
+    box-shadow:
+        inset 0 0 0 2px rgba(42, 122, 255, 0.7),
+        0 0 10px rgba(42, 122, 255, 0.25);
+    z-index: 1;
+}
+.cell-enemy-targetable:hover::before {
+    content: "＋";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(42, 122, 255, 0.65);
+    line-height: 1;
+    pointer-events: none;
+    font-family: var(--font-mono);
 }
 
 /* ─── Enemy grid — my missed shot (grey dot) ─────────────────── */
 .cell-enemy-miss { background: var(--bg-panel); }
+.cell-enemy-miss::before {
+    content: "";
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(138, 155, 184, 0.65);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    animation: missRipple 0.65s ease-out both;
+    pointer-events: none;
+}
 .cell-enemy-miss::after {
     content: "";
     position: absolute;
@@ -792,23 +849,33 @@ a:hover { text-decoration: underline; }
     background: rgba(138, 155, 184, 0.45);
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0);
+    animation: dotPopIn 0.25s 0.12s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 
 /* ─── Enemy grid — my hit (red + cross) ──────────────────────── */
 .cell-enemy-hit {
     background: rgba(180, 20, 20, 0.6);
 }
+.cell-enemy-hit::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 80, 0, 0.82);
+    animation: hitBurst 0.55s ease-out both;
+    pointer-events: none;
+}
 .cell-enemy-hit::after {
     content: "✕";
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0);
     font-size: 18px;
     font-weight: 700;
     color: rgba(255, 120, 120, 0.95);
     line-height: 1;
+    animation: crossPopIn 0.3s 0.12s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 
 /* ─── Enemy grid — sunk ship revealed (ship colour + red tint) ── */
@@ -816,17 +883,27 @@ a:hover { text-decoration: underline; }
 .cell-enemy-sunk {
     box-shadow: inset 0 0 0 44px rgba(140, 0, 0, 0.45);
     opacity: 0.85;
+    animation: sunkFlash 0.9s ease-out both;
+}
+.cell-enemy-sunk::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 30, 0, 0.78);
+    animation: hitBurst 0.75s ease-out both;
+    pointer-events: none;
 }
 .cell-enemy-sunk::after {
     content: "✕";
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0);
     font-size: 14px;
     font-weight: 700;
     color: rgba(255, 140, 140, 0.9);
     line-height: 1;
+    animation: crossPopIn 0.35s 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 
 /* ─── Shot result toast ───────────────────────────────────────── */
@@ -885,12 +962,15 @@ a:hover { text-decoration: underline; }
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.04em;
+    transition: background 350ms ease, color 350ms ease,
+                border-color 350ms ease, box-shadow 350ms ease;
 }
 .turn-indicator.my-turn {
     background: rgba(42,122,255,0.2);
     color: var(--accent-blue);
     border: 1px solid rgba(42,122,255,0.4);
     box-shadow: var(--shadow-glow);
+    animation: turnActivate 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 .turn-indicator.their-turn {
     background: var(--bg-surface);
@@ -1115,6 +1195,7 @@ a:hover { text-decoration: underline; }
     padding: 6px 14px;
     font-size: 14px;
     font-weight: 600;
+    animation: chipSlideIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 
 /* Progressive fade for older shots (newer chips appear first in DOM) */
@@ -1351,4 +1432,49 @@ a:hover { text-decoration: underline; }
 @keyframes toastSlideIn {
     from { opacity: 0; transform: translateX(-50%) translateY(-14px); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ─── Miss ripple — expanding ring fades out ─────────────────── */
+@keyframes missRipple {
+    0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0.9; }
+    100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0;   }
+}
+
+/* ─── Small dot/cross pop-in ─────────────────────────────────── */
+@keyframes dotPopIn {
+    from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* ─── Hit burst overlay fades out after flash ───────────────── */
+@keyframes hitBurst {
+    0%   { opacity: 0.9; transform: scale(1.06); }
+    50%  { opacity: 0.6; transform: scale(1.00); }
+    100% { opacity: 0;   transform: scale(0.85); }
+}
+
+/* ─── Cross/✕ pops in from scale 0 ──────────────────────────── */
+@keyframes crossPopIn {
+    from { transform: translate(-50%, -50%) scale(0) rotate(-15deg); opacity: 0; }
+    to   { transform: translate(-50%, -50%) scale(1) rotate(0deg);   opacity: 1; }
+}
+
+/* ─── Sunk cell flash — bright then settles ─────────────────── */
+@keyframes sunkFlash {
+    0%   { filter: brightness(2.2) saturate(0.6); }
+    35%  { filter: brightness(1.5) saturate(0.8); }
+    100% { filter: brightness(1.0) saturate(1.0); }
+}
+
+/* ─── Turn indicator pulse when it becomes active ───────────── */
+@keyframes turnActivate {
+    0%   { transform: scale(0.94); }
+    60%  { transform: scale(1.03); }
+    100% { transform: scale(1.00); }
+}
+
+/* ─── New shot chip slides in from left ─────────────────────── */
+@keyframes chipSlideIn {
+    from { transform: translateX(-10px) scale(0.88); opacity: 0; }
+    to   { transform: translateX(0)      scale(1);    opacity: 1; }
 }

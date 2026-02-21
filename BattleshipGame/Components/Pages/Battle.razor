@@ -56,6 +56,8 @@
                         var shot = RecentShots[si];
                         var isLatest = si == 0;
                         var coord = FormatCoord(shot.Row, shot.Col);
+                        // Stable key: the shot's index in the full history (newest = highest index)
+                        var shotKey = (_session?.ShotHistory.Count ?? 0) - 1 - si;
                         var chipClass = shot.Result switch
                         {
                             ShotResult.Miss => "shot-chip-miss",
@@ -70,7 +72,7 @@
                             ShotResult.Sunk => "💥",
                             _               => ""
                         };
-                        <div class="shot-chip @chipClass @(isLatest ? "shot-chip-latest" : "")">
+                        <div @key="shotKey" class="shot-chip @chipClass @(isLatest ? "shot-chip-latest" : "")">
                             <span class="shot-chip-icon">@icon</span>
                             <span class="shot-chip-coord">@coord</span>
                             @if (isLatest)
