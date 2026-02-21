@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 6 complete: Polished full-screen Win/Loss screen with per-player stats (shots fired, hits, accuracy, ships sunk) and rematch voting. Both players must click "Play Again" for a rematch; when both vote, the session resets and both circuits auto-navigate to the Placement phase. The loser of the previous game goes first in the next (correctly wired now). Rematch flow (previously Iteration 7) delivered in the same pass.
+- Iteration 7 complete: Visual polish pass. Shot miss animations (expanding ring ripple + dot pop-in), shot hit animations (orange burst overlay + ✕ cross pop-in with rotation), ship sunk flash (sunkFlash brightness burst on all sunk cells simultaneously). Turn indicator CSS transitions + scale-pulse spring animation on activation. Shot history bar chips use @key for stable DOM identity — new chips slide in. Enemy grid hover refined with stronger glow + targeting ＋ crosshair. Seven new @keyframes added.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.

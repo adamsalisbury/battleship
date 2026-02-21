@@ -2,9 +2,6 @@
 
 Items are prioritised top-to-bottom. Each item is one iteration.
 
-## Iteration 7
-- **Visual Polish Pass** — Animations: shot splash animation on hit/miss, ship sink animation, turn-change transition. Grid cell hover states refined. Loading states. Sound effects (optional — visual only is fine).
-
 ## Iteration 8
 - **Disconnect / Reconnect Handling** — If a player disconnects (browser close/refresh), detect it via SignalR OnDisconnectedAsync, display "Opponent disconnected" to remaining player. Allow reconnection via the same URL with same token within 5 minutes.
 
@@ -13,3 +10,6 @@ Items are prioritised top-to-bottom. Each item is one iteration.
 
 ## Iteration 10
 - **Accessibility & Keyboard Nav** — All interactive elements keyboard-navigable. Grid cells have aria labels ("A1", "B3", etc.). Screen reader announcements for shot results.
+
+## Iteration 11
+- **Technical Debt Sweep** — Replace FluentAssertions with xUnit-native assertions (FA 8.x requires commercial license). Fix ClearShips double-negation no-op. Add player name collision validation in JoinSession.

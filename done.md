@@ -1,5 +1,24 @@
 # Done — Chronological Log
 
+## Iteration 7 — Visual Polish Pass
+**Date:** 2026-02-21
+
+### What was done
+- **Shot miss animation**: `::before` expanding ring ripple (`missRipple` keyframe, 0.65s ease-out); `::after` dot pops in via `dotPopIn`. Applied to both `cell-own-miss` and `cell-enemy-miss`.
+- **Shot hit animation**: `::before` orange burst overlay (`hitBurst`, 0.55s, fades out); `::after` ✕ cross pops in with slight rotation (`crossPopIn`, 0.3s with 0.12s delay). Applied to both `cell-own-hit` and `cell-enemy-hit`.
+- **Ship sunk animation**: `sunkFlash` keyframe (brightness 2.2→1.0, 0.8–0.9s) applied to `cell-own-sunk` and `cell-enemy-sunk`. Enemy sunk also gets the `hitBurst` overlay `::before` (0.75s) for a dramatic reveal of the ship colour beneath. All cells of a sinking ship animate simultaneously via CSS class changes.
+- **Turn indicator transition**: Added `transition: background/color/border/box-shadow 350ms ease` to base `.turn-indicator`. Added `animation: turnActivate` (scale 0.94→1.03→1.0, 0.45s cubic-bezier spring) to `.turn-indicator.my-turn` — fires whenever the turn switches to this player.
+- **Shot history chip animation**: Added `@key="shotKey"` to the shot history `@for` loop (key = index in full `ShotHistory` list) so each new chip gets a fresh DOM element. Added `animation: chipSlideIn` (slide from left + scale, 0.3s spring) to `.shot-chip-latest` so new shots slide into the bar.
+- **Refined enemy hover**: `.cell-enemy-targetable` now has 80ms CSS `transition`, stronger blue glow (`box-shadow: inset 2px + outer 10px`) and a targeting `＋` crosshair via `::before` pseudo-element on hover. `z-index: 1` ensures the glow visually appears above adjacent cells.
+- **New @keyframes**: `missRipple`, `dotPopIn`, `hitBurst`, `crossPopIn`, `sunkFlash`, `turnActivate`, `chipSlideIn` — all added to `app.css` keyframe section.
+- Moved technical debt items (FA replacement, name collision, ClearShips bug) to Iteration 11 in to-do.md for a dedicated sweep.
+
+### Notes
+- Build: 0 warnings, 0 errors. Tests: 31/31 passing.
+- All animations are purely CSS — no C# timer tracking needed. Class changes from Blazor's DOM diffing trigger animations automatically.
+
+---
+
 ## Iteration 6 — Win/Loss Screen & Rematch Flow
 **Date:** 2026-02-21
 
