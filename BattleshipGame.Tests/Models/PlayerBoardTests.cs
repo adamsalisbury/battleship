@@ -1,5 +1,4 @@
 using BattleshipGame.Models;
-using FluentAssertions;
 
 namespace BattleshipGame.Tests.Models;
 
@@ -14,8 +13,8 @@ public class PlayerBoardTests
         var board = new PlayerBoard();
         var ship = MakeDestroyerAt(0, 0);
 
-        board.TryPlaceShip(ship).Should().BeTrue();
-        board.Ships.Should().HaveCount(1);
+        Assert.True(board.TryPlaceShip(ship));
+        Assert.Single(board.Ships);
     }
 
     [Fact]
@@ -24,8 +23,8 @@ public class PlayerBoardTests
         var board = new PlayerBoard();
         var ship = new Ship { Type = ShipType.Destroyer, Row = 0, Column = 9, IsHorizontal = true };
 
-        board.TryPlaceShip(ship).Should().BeFalse();
-        board.Ships.Should().BeEmpty();
+        Assert.False(board.TryPlaceShip(ship));
+        Assert.Empty(board.Ships);
     }
 
     [Fact]
@@ -36,8 +35,8 @@ public class PlayerBoardTests
 
         // Second ship overlaps
         var overlapping = MakeDestroyerAt(0, 1);
-        board.TryPlaceShip(overlapping).Should().BeFalse();
-        board.Ships.Should().HaveCount(1);
+        Assert.False(board.TryPlaceShip(overlapping));
+        Assert.Single(board.Ships);
     }
 
     [Fact]
@@ -48,9 +47,9 @@ public class PlayerBoardTests
 
         var result = board.FireAt(0, 0);
 
-        result.Should().Be(ShotResult.Miss);
-        board.ShotGrid[0, 0].Should().Be(CellState.Miss);
-        board.TotalHitsReceived.Should().Be(0);
+        Assert.Equal(ShotResult.Miss, result);
+        Assert.Equal(CellState.Miss, board.ShotGrid[0, 0]);
+        Assert.Equal(0, board.TotalHitsReceived);
     }
 
     [Fact]
@@ -61,9 +60,9 @@ public class PlayerBoardTests
 
         var result = board.FireAt(0, 0);
 
-        result.Should().Be(ShotResult.Hit);
-        board.ShotGrid[0, 0].Should().Be(CellState.Hit);
-        board.TotalHitsReceived.Should().Be(1);
+        Assert.Equal(ShotResult.Hit, result);
+        Assert.Equal(CellState.Hit, board.ShotGrid[0, 0]);
+        Assert.Equal(1, board.TotalHitsReceived);
     }
 
     [Fact]
@@ -73,7 +72,7 @@ public class PlayerBoardTests
         board.FireAt(5, 5);
 
         var second = board.FireAt(5, 5);
-        second.Should().BeNull();
+        Assert.Null(second);
     }
 
     [Fact]
@@ -85,19 +84,19 @@ public class PlayerBoardTests
         board.FireAt(0, 0);
         var result = board.FireAt(0, 1);
 
-        result.Should().Be(ShotResult.Sunk);
+        Assert.Equal(ShotResult.Sunk, result);
     }
 
     [Fact]
     public void AllShipsSunk_WhenAllHitsLanded_ReturnsTrue()
     {
-        // Place each fleet ship on a distinct row (vertical, column 0)
+        // Place each fleet ship on a distinct row (horizontal, column 0)
         var fullBoard = new PlayerBoard();
         int row = 0;
         foreach (var (type, _) in GridConstants.Fleet)
         {
             var ship = new Ship { Type = type, Row = row, Column = 0, IsHorizontal = true };
-            fullBoard.TryPlaceShip(ship).Should().BeTrue($"ship {type} should fit at row {row}");
+            Assert.True(fullBoard.TryPlaceShip(ship), $"ship {type} should fit at row {row}");
             row++; // Each ship on its own row; max size is 5, so they never overlap
         }
 
@@ -106,8 +105,8 @@ public class PlayerBoardTests
             foreach (var (r, c) in ship.Cells)
                 fullBoard.FireAt(r, c);
 
-        fullBoard.AllShipsSunk.Should().BeTrue();
-        fullBoard.TotalHitsReceived.Should().Be(GridConstants.TotalHitsToWin);
+        Assert.True(fullBoard.AllShipsSunk);
+        Assert.Equal(GridConstants.TotalHitsToWin, fullBoard.TotalHitsReceived);
     }
 
     [Fact]
@@ -117,6 +116,6 @@ public class PlayerBoardTests
         board.TryPlaceShip(MakeDestroyerAt(0, 0));
         board.ClearShips();
 
-        board.Ships.Should().BeEmpty();
+        Assert.Empty(board.Ships);
     }
 }

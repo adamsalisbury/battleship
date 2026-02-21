@@ -1,6 +1,5 @@
 using BattleshipGame.Models;
 using BattleshipGame.Services;
-using FluentAssertions;
 
 namespace BattleshipGame.Tests.Services;
 
@@ -13,11 +12,11 @@ public class GameSessionServiceTests
     {
         var session = _service.CreateSession("Alice", "conn-1");
 
-        session.Should().NotBeNull();
-        session.Code.Should().HaveLength(4);
-        session.Host.Should().NotBeNull();
-        session.Host!.Name.Should().Be("Alice");
-        session.Phase.Should().Be(GamePhase.Lobby);
+        Assert.NotNull(session);
+        Assert.Equal(4, session.Code.Length);
+        Assert.NotNull(session.Host);
+        Assert.Equal("Alice", session.Host!.Name);
+        Assert.Equal(GamePhase.Lobby, session.Phase);
     }
 
     [Fact]
@@ -26,17 +25,17 @@ public class GameSessionServiceTests
         var session = _service.CreateSession("Alice", "conn-1");
         var joined = _service.JoinSession(session.Code, "Bob", "conn-2");
 
-        joined.Should().NotBeNull();
-        joined!.Guest.Should().NotBeNull();
-        joined.Guest!.Name.Should().Be("Bob");
-        joined.Phase.Should().Be(GamePhase.Placement);
+        Assert.NotNull(joined);
+        Assert.NotNull(joined!.Guest);
+        Assert.Equal("Bob", joined.Guest!.Name);
+        Assert.Equal(GamePhase.Placement, joined.Phase);
     }
 
     [Fact]
     public void JoinSession_InvalidCode_ReturnsNull()
     {
         var result = _service.JoinSession("ZZZZ", "Bob", "conn-2");
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -47,7 +46,38 @@ public class GameSessionServiceTests
 
         // Third player tries to join
         var third = _service.JoinSession(session.Code, "Charlie", "conn-3");
-        third.Should().BeNull();
+        Assert.Null(third);
+    }
+
+    [Fact]
+    public void JoinSession_SameNameAsHost_ReturnsNull()
+    {
+        // Duplicate names break GetPlayerByName — must be rejected
+        var session = _service.CreateSession("Alice", "conn-1");
+        var result = _service.JoinSession(session.Code, "Alice", "conn-2");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void JoinSession_SameNameAsHostCaseInsensitive_ReturnsNull()
+    {
+        // Case-insensitive collision check prevents visually identical names
+        var session = _service.CreateSession("Alice", "conn-1");
+        var result = _service.JoinSession(session.Code, "alice", "conn-2");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void JoinSession_DifferentName_Succeeds()
+    {
+        // Verify a non-colliding name still works after the guard is in place
+        var session = _service.CreateSession("Alice", "conn-1");
+        var result = _service.JoinSession(session.Code, "Bob", "conn-2");
+
+        Assert.NotNull(result);
+        Assert.Equal("Bob", result!.Guest!.Name);
     }
 
     [Fact]
@@ -56,13 +86,13 @@ public class GameSessionServiceTests
         var created = _service.CreateSession("Alice", "conn-1");
         var fetched = _service.GetSession(created.Code);
 
-        fetched.Should().BeSameAs(created);
+        Assert.Same(created, fetched);
     }
 
     [Fact]
     public void GetSession_UnknownCode_ReturnsNull()
     {
-        _service.GetSession("XXXX").Should().BeNull();
+        Assert.Null(_service.GetSession("XXXX"));
     }
 
     [Fact]
@@ -71,7 +101,7 @@ public class GameSessionServiceTests
         for (var i = 0; i < 20; i++)
         {
             var session = _service.CreateSession($"Player{i}", $"conn-{i}");
-            session.Code.Should().MatchRegex("^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}$");
+            Assert.Matches("^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}$", session.Code);
         }
     }
 }

@@ -1,6 +1,5 @@
 using BattleshipGame.Models;
 using BattleshipGame.Services;
-using FluentAssertions;
 
 namespace BattleshipGame.Tests.Models;
 
@@ -34,8 +33,8 @@ public class GameSessionTests
 
         session.AddHost(new Player("Alice", "c1", isHost: true));
 
-        session.Host.Should().NotBeNull();
-        eventFired.Should().BeTrue();
+        Assert.NotNull(session.Host);
+        Assert.True(eventFired);
     }
 
     [Fact]
@@ -47,7 +46,7 @@ public class GameSessionTests
 
         var result = session.AddGuest(new Player("Charlie", "c3", isHost: false));
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -59,8 +58,8 @@ public class GameSessionTests
 
         var result = session.StartPlacement();
 
-        result.Should().BeTrue();
-        session.Phase.Should().Be(GamePhase.Placement);
+        Assert.True(result);
+        Assert.Equal(GamePhase.Placement, session.Phase);
     }
 
     [Fact]
@@ -77,7 +76,7 @@ public class GameSessionTests
             session.PlaceShip("Alice", ship);
         session.MarkPlayerReady("Alice");
 
-        session.Phase.Should().Be(GamePhase.Placement); // Bob not ready yet
+        Assert.Equal(GamePhase.Placement, session.Phase); // Bob not ready yet
 
         // Place full fleet for Bob
         var bobShips = PlacementService.GenerateRandomPlacement();
@@ -85,8 +84,8 @@ public class GameSessionTests
             session.PlaceShip("Bob", ship);
         session.MarkPlayerReady("Bob");
 
-        session.Phase.Should().Be(GamePhase.Battle);
-        session.ActivePlayer.Should().Be(session.Host); // Host goes first
+        Assert.Equal(GamePhase.Battle, session.Phase);
+        Assert.Same(session.Host, session.ActivePlayer); // Host goes first
     }
 
     [Fact]
@@ -102,10 +101,11 @@ public class GameSessionTests
 
         var result = session.FireShot(firstPlayer, shipCell.Row, shipCell.Col);
 
-        result.Should().NotBeNull();
-        result.Should().BeOneOf(ShotResult.Hit, ShotResult.Sunk);
+        Assert.NotNull(result);
+        Assert.True(result == ShotResult.Hit || result == ShotResult.Sunk,
+            $"Expected Hit or Sunk but got {result}");
         // Turn should have passed
-        session.ActivePlayer!.Name.Should().NotBe(firstPlayer);
+        Assert.NotEqual(firstPlayer, session.ActivePlayer!.Name);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class GameSessionTests
 
         var result = session.FireShot(waitingPlayer, 0, 0);
 
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class GameSessionTests
 
         // Now original shooter tries same cell again
         var result = session.FireShot(shooter, 9, 9);
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -142,8 +142,8 @@ public class GameSessionTests
         var alice = new Player("Alice", "c1", isHost: true);
         session.AddHost(alice);
 
-        session.GetPlayerByName("Alice").Should().BeSameAs(alice);
-        session.GetPlayerByName("Nobody").Should().BeNull();
+        Assert.Same(alice, session.GetPlayerByName("Alice"));
+        Assert.Null(session.GetPlayerByName("Nobody"));
     }
 
     // ─── Disconnect / Reconnect tests ────────────────────────────────────────
@@ -160,10 +160,10 @@ public class GameSessionTests
 
         var result = session.MarkPlayerDisconnected("Alice");
 
-        result.Should().BeTrue();
-        session.Host!.IsDisconnected.Should().BeTrue();
-        session.Host.DisconnectedAt.Should().NotBeNull();
-        eventFired.Should().BeTrue();
+        Assert.True(result);
+        Assert.True(session.Host!.IsDisconnected);
+        Assert.NotNull(session.Host.DisconnectedAt);
+        Assert.True(eventFired);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class GameSessionTests
 
         var result = session.MarkPlayerDisconnected("Nobody");
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -187,9 +187,9 @@ public class GameSessionTests
 
         var result = session.MarkPlayerReconnected("Alice", "tok-a");
 
-        result.Should().BeTrue();
-        session.Host!.IsDisconnected.Should().BeFalse();
-        session.Host.DisconnectedAt.Should().BeNull();
+        Assert.True(result);
+        Assert.False(session.Host!.IsDisconnected);
+        Assert.Null(session.Host.DisconnectedAt);
     }
 
     [Fact]
@@ -202,8 +202,8 @@ public class GameSessionTests
 
         var result = session.MarkPlayerReconnected("Alice", "wrong-token");
 
-        result.Should().BeFalse();
-        session.Host!.IsDisconnected.Should().BeTrue(); // still disconnected
+        Assert.False(result);
+        Assert.True(session.Host!.IsDisconnected); // still disconnected
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public class GameSessionTests
         // Alice is not disconnected — reconnect call should be a no-op
         var result = session.MarkPlayerReconnected("Alice", "tok-a");
 
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -228,8 +228,8 @@ public class GameSessionTests
 
         session.MarkPlayerDisconnected("Bob");
 
-        session.IsOpponentDisconnected("Alice").Should().BeTrue();
-        session.IsOpponentDisconnected("Bob").Should().BeFalse();
+        Assert.True(session.IsOpponentDisconnected("Alice"));
+        Assert.False(session.IsOpponentDisconnected("Bob"));
     }
 
     [Fact]
@@ -242,7 +242,7 @@ public class GameSessionTests
         session.MarkPlayerDisconnected("Alice");
 
         // Just disconnected — should not be expired yet
-        session.IsDisconnectExpired("Alice").Should().BeFalse();
+        Assert.False(session.IsDisconnectExpired("Alice"));
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public class GameSessionTests
             .GetProperty("DisconnectedAt")!
             .SetValue(session.Host, DateTime.UtcNow.AddMinutes(-6));
 
-        session.IsDisconnectExpired("Alice").Should().BeTrue();
+        Assert.True(session.IsDisconnectExpired("Alice"));
     }
 
     [Fact]
@@ -272,8 +272,8 @@ public class GameSessionTests
             Token = "tok-abc"
         };
 
-        tracker.SessionCode.Should().Be("ABCD");
-        tracker.PlayerName.Should().Be("Alice");
-        tracker.Token.Should().Be("tok-abc");
+        Assert.Equal("ABCD", tracker.SessionCode);
+        Assert.Equal("Alice", tracker.PlayerName);
+        Assert.Equal("tok-abc", tracker.Token);
     }
 }
