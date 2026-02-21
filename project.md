@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 8 complete: Disconnect/reconnect handling. `GameCircuitHandler` (scoped `CircuitHandler`) detects WebSocket drops via `OnConnectionDownAsync`/`OnConnectionUpAsync`. `PlayerCircuitTracker` (scoped) maps each Blazor circuit to its session+player. All three active-game pages (Lobby, Placement, Battle) register the tracker. Animated disconnect banner shown to remaining player; game paused (shots disabled). Manual reconnect via same URL + token validated against stored `Player.ConnectionId`; 5-minute window. 40/40 tests passing, 0 warnings.
+- Iteration 9 complete: Session expiry UX. `SessionExpiredCard.razor` (new shared component in `Components/Shared/`) displays a polished full-screen error card — anchor SVG icon, clear headline, explanation, expiry detail, "Start a New Game" CTA — when a session is not found or inaccessible. Fixed a pre-existing bug where expired sessions showed an infinite loading spinner (the `_session is null` condition fired before the error condition). Placement.razor and Battle.razor restructured to clean top-level three-way branches. Lobby.razor join-failure now correctly shows the error card. Home.razor join error mentions expiry. 40/40 tests passing, 0 warnings.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.

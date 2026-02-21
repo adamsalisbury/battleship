@@ -1,5 +1,24 @@
 # Done — Chronological Log
 
+## Iteration 9 — Session Expiry UX
+**Date:** 2026-02-21
+
+### What was done
+- **Bug fixed**: Navigating to `/placement/{CODE}` or `/battle/{CODE}` with an expired session code previously showed a permanent loading spinner. Root cause: the `@if (_session is null)` condition matched before `_error is not null` was checked, hiding the error message entirely.
+- **`SessionExpiredCard.razor`** (new, `Components/Shared/`): Shared component rendering a full-screen centred card with an anchor SVG icon, a bold `Title`, a descriptive `Message`, an optional italic `Detail` line, and a primary "⊕ Start a New Game" CTA linking to `/`. Inherits render mode from the host page (no `@rendermode` needed).
+- **`_Imports.razor`**: Added `@using BattleshipGame.Components.Shared` so `SessionExpiredCard` is available to all pages without per-file `@using` directives.
+- **`Placement.razor`**: Restructured from nested `@if`/`else if`/`else` inside `.placement-screen` to a clean top-level three-way branch: error → `SessionExpiredCard`; loading → spinner; session ready → full `.placement-screen`. Prevents the `.placement-screen` div (with `min-height: 100vh`) from rendering alongside the error card.
+- **`Battle.razor`**: Same top-level restructure. Added `_sessionNotFound` bool: when `true`, card shows "Game Not Found" + expiry info; when `false` (wrong phase), card shows "Game Unavailable" with context-appropriate detail.
+- **`Lobby.razor`**: Join failure (`JoinSession` returns null) now correctly shows `SessionExpiredCard` instead of being consumed by the null-session loading branch. Restructured to top-level `@if (_error is not null)` / `else if (_session is null)` / `else` pattern.
+- **`Home.razor`**: Join error message for `GetSession` returning null updated to mention session expiry: "the session may have expired (sessions last 2 hours)".
+- **`app.css`**: New `.expired-screen` (full-page flex centring), `.session-expired-card` (max-width card with `fadeSlideDown` animation), `.expired-anchor-icon`, `.expired-title`, `.expired-message`, `.expired-detail` (indented info box), `.expired-actions`, `.expired-cta` (min-width button).
+
+### Notes
+- Build: 0 warnings, 0 errors. Tests: 40/40 passing.
+- `SessionExpiredCard` is purely presentational — no game logic, no SignalR. Parameters: `Title`, `Message`, `Detail` (all optional with sensible defaults).
+
+---
+
 ## Iteration 8 — Disconnect / Reconnect Handling
 **Date:** 2026-02-21
 

@@ -2,9 +2,6 @@
 
 Items are prioritised top-to-bottom. Each item is one iteration.
 
-## Iteration 9
-- **Session Expiry UX** — If game session is not found (expired), show a clear error with "Start a new game" link rather than a generic error.
-
 ## Iteration 10
 - **Accessibility & Keyboard Nav** — All interactive elements keyboard-navigable. Grid cells have aria labels ("A1", "B3", etc.). Screen reader announcements for shot results.
 
