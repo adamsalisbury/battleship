@@ -1,5 +1,29 @@
 # Done — Chronological Log
 
+## Iteration 6 — Win/Loss Screen & Rematch Flow
+**Date:** 2026-02-21
+
+### What was done
+- Replaced the basic one-liner result overlay with a polished full-screen stats card:
+  - **Banner**: "⚓ Battle Over" + personalised winner/loser headline using player names.
+  - **Stats grid**: Two-column layout (winner left, loser right) separated by a VS divider. Each column shows: shots fired, hits, accuracy %, ships sunk (out of 5). Uses gold/red colour coding for winner/loser columns.
+  - **Rematch voting**: "🔄 Play Again" button (green); turns into a muted "✓ Rematch vote cast" (disabled) after clicking. Vote status line updates live: "Waiting for {opponent}…" or "⚡ {opponent} wants a rematch — accept above!"
+  - **Back to Home** link always available as an escape.
+- Added `GameSession.ProposeRematch(playerName)` — thread-safe vote accumulation. When both players vote, automatically calls `ResetForRematchCore()` inside the same lock.
+- Added `GameSession.HasVotedRematch(playerName)` and `RematchVoteCount` accessors (both lock-protected).
+- Refactored `ResetForRematch()` into public wrapper + private `ResetForRematchCore()` to allow calling from `ProposeRematch` without re-entering the lock (deadlock prevention).
+- Fixed `MarkPlayerReady` to use `_rematchFirstPlayer ?? Host` for first-turn assignment — loser of the previous game now correctly goes first in rematches (`_rematchFirstPlayer` was previously stored but never consumed). Resolves to-do-technical item.
+- Updated `OnSessionStateChanged()` in Battle.razor: when Phase transitions to Placement (rematch accepted), both circuits navigate to `/placement/{Code}?name=…&token=…` automatically.
+- Added stat helpers to Battle.razor `@code`: `GetShotCount()`, `GetHitCount()`, `GetAccuracy()`, `GetShipsSunkCount()` — all computed from `ShotHistory` and board state.
+- Added result-screen CSS section to `app.css`: `.result-card-wide`, `.result-banner`, `.result-stats-grid`, `.result-stat-col`, `.stat-col-winner/loser`, `.result-vs-divider`, `.result-stat-header/row/label/value/total`, `.result-role-badge`, `.badge-winner/loser`, `.result-actions`, `.btn-success`, `.btn-voted`, `.result-vote-status`.
+- Also delivered Iteration 7 (Rematch Flow) in the same iteration.
+
+### Notes
+- Build: 0 warnings, 0 errors. Tests: 31/31 passing.
+- Rematch first-player logic (to-do-technical item) resolved and closed.
+
+---
+
 ## Iteration 1 — Project Bootstrap & Lobby Flow
 **Date:** 2026-02-21
 
