@@ -1,0 +1,128 @@
+@page "/placement/{Code}"
+@rendermode InteractiveServer
+@inject GameSessionService SessionService
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Place Ships — Battleship</PageTitle>
+
+<div class="placement-screen">
+    @if (_session is null)
+    {
+        <div class="lobby-loading">
+            <div class="spinner"></div>
+            <p>Loading game…</p>
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="lobby-error">
+            <p class="error-msg">@_error</p>
+            <a href="/" class="btn btn-ghost">← Back to Home</a>
+        </div>
+    }
+    else
+    {
+        <div class="placement-header">
+            <h2>Place Your Ships</h2>
+            <p class="placement-subtitle">
+                @_playerName vs @_opponentName — arrange your fleet before battle begins
+            </p>
+        </div>
+
+        <div class="placement-status-panel">
+            <div class="player-status @(_myReady ? "status-ready" : "status-waiting")">
+                <span>@_playerName</span>
+                <span class="status-badge">@(_myReady ? "✓ Ready" : "Placing…")</span>
+            </div>
+            <div class="vs-small">VS</div>
+            <div class="player-status @(_opponentReady ? "status-ready" : "status-waiting")">
+                <span>@_opponentName</span>
+                <span class="status-badge">@(_opponentReady ? "✓ Ready" : "Placing…")</span>
+            </div>
+        </div>
+
+        <div class="placement-coming-soon">
+            <p>Ship placement UI coming in the next iteration.</p>
+            <p class="hint">For now, click <strong>Auto-Place &amp; Ready</strong> to continue.</p>
+            <button class="btn btn-primary" @onclick="AutoPlaceAndReady" disabled="@_myReady">
+                Auto-Place &amp; Ready
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Code { get; set; } = "";
+    [SupplyParameterFromQuery] public string? Name { get; set; }
+    [SupplyParameterFromQuery] public string? Token { get; set; }
+
+    private GameSession? _session;
+    private string _playerName = "";
+    private string _opponentName = "";
+    private bool _myReady;
+    private bool _opponentReady;
+    private string? _error;
+    private bool _navigated;
+
+    protected override void OnInitialized()
+    {
+        _playerName = Name ?? "Player";
+        _session = SessionService.GetSession(Code);
+
+        if (_session is null)
+        {
+            _error = "Game session not found.";
+            return;
+        }
+
+        RefreshStatus();
+        _session.StateChanged += OnSessionStateChanged;
+    }
+
+    private async void OnSessionStateChanged()
+    {
+        await InvokeAsync(() =>
+        {
+            RefreshStatus();
+            StateHasChanged();
+        });
+
+        if (!_navigated && _session?.Phase == GamePhase.Battle)
+        {
+            _navigated = true;
+            await InvokeAsync(() => Nav.NavigateTo($"/battle/{Code}?name={Uri.EscapeDataString(Name ?? "Player")}&token={Uri.EscapeDataString(Token ?? "")}"));
+        }
+    }
+
+    private void RefreshStatus()
+    {
+        if (_session is null) return;
+        var me = _session.GetPlayerByName(_playerName);
+        var opponent = _playerName == _session.Host?.Name ? _session.Guest : _session.Host;
+        _opponentName = opponent?.Name ?? "Opponent";
+        _myReady = me?.Board.IsReady ?? false;
+        _opponentReady = opponent?.Board.IsReady ?? false;
+    }
+
+    private void AutoPlaceAndReady()
+    {
+        if (_session is null) return;
+
+        // Auto-place ships
+        _session.ClearShips(_playerName);
+        var ships = PlacementService.GenerateRandomPlacement();
+        foreach (var ship in ships)
+            _session.PlaceShip(_playerName, ship);
+
+        // Mark ready
+        _session.MarkPlayerReady(_playerName);
+        RefreshStatus();
+    }
+
+    public void Dispose()
+    {
+        if (_session is not null)
+            _session.StateChanged -= OnSessionStateChanged;
+    }
+}

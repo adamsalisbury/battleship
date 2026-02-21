@@ -1,0 +1,121 @@
+@page "/battle/{Code}"
+@rendermode InteractiveServer
+@inject GameSessionService SessionService
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Battle — Battleship</PageTitle>
+
+<div class="battle-screen">
+    @if (_session is null)
+    {
+        <div class="lobby-loading">
+            <div class="spinner"></div>
+            <p>Loading battle…</p>
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="lobby-error">
+            <p class="error-msg">@_error</p>
+            <a href="/" class="btn btn-ghost">← Back to Home</a>
+        </div>
+    }
+    else
+    {
+        <div class="battle-header">
+            <div class="turn-indicator @(IsMyTurn ? "my-turn" : "their-turn")">
+                @if (IsMyTurn)
+                {
+                    <span>🎯 Your turn, @_playerName!</span>
+                }
+                else
+                {
+                    <span>⏳ @_opponentName is aiming…</span>
+                }
+            </div>
+        </div>
+
+        <div class="battle-area">
+            <div class="grid-section my-grid-section">
+                <h3 class="grid-title">Your Waters — @_playerName</h3>
+                <p class="grid-hint">Your ships (opponent fires here)</p>
+                <div class="grid-placeholder">
+                    <p>Battle grid UI coming soon</p>
+                </div>
+            </div>
+
+            <div class="battle-divider">
+                <span class="battle-vs">⚓</span>
+            </div>
+
+            <div class="grid-section enemy-grid-section">
+                <h3 class="grid-title">Enemy Waters — @_opponentName</h3>
+                <p class="grid-hint">Click to fire @(IsMyTurn ? "" : "(wait for your turn)")</p>
+                <div class="grid-placeholder">
+                    <p>Battle grid UI coming soon</p>
+                </div>
+            </div>
+        </div>
+
+        @if (_session.Phase == GamePhase.Finished)
+        {
+            <div class="result-overlay">
+                <div class="result-card">
+                    @if (_session.Winner?.Name == _playerName)
+                    {
+                        <h2 class="result-win">🏆 Victory!</h2>
+                        <p>You sank all of @_opponentName's ships!</p>
+                    }
+                    else
+                    {
+                        <h2 class="result-loss">💀 Defeated</h2>
+                        <p>@_opponentName sank your entire fleet.</p>
+                    }
+                    <a href="/" class="btn btn-primary">Back to Home</a>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Code { get; set; } = "";
+    [SupplyParameterFromQuery] public string? Name { get; set; }
+    [SupplyParameterFromQuery] public string? Token { get; set; }
+
+    private GameSession? _session;
+    private string _playerName = "";
+    private string _opponentName = "";
+    private string? _error;
+
+    private bool IsMyTurn => _session?.ActivePlayer?.Name == _playerName;
+
+    protected override void OnInitialized()
+    {
+        _playerName = Name ?? "Player";
+        _session = SessionService.GetSession(Code);
+
+        if (_session is null)
+        {
+            _error = "Game session not found.";
+            return;
+        }
+
+        var opponent = _playerName == _session.Host?.Name ? _session.Guest : _session.Host;
+        _opponentName = opponent?.Name ?? "Opponent";
+
+        _session.StateChanged += OnSessionStateChanged;
+    }
+
+    private async void OnSessionStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (_session is not null)
+            _session.StateChanged -= OnSessionStateChanged;
+    }
+}

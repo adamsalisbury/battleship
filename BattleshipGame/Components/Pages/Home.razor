@@ -1,0 +1,138 @@
+@page "/"
+@rendermode InteractiveServer
+@inject GameSessionService SessionService
+@inject NavigationManager Nav
+
+<PageTitle>Battleship</PageTitle>
+
+<div class="home-screen">
+    <div class="home-hero">
+        <div class="ship-icon" aria-hidden="true">
+            <svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="5,45 10,30 25,25 95,25 110,30 115,45 70,48 50,48" fill="var(--ship-fill)" />
+                <rect x="30" y="15" width="50" height="12" rx="2" fill="var(--ship-fill)" />
+                <rect x="45" y="5" width="20" height="12" rx="2" fill="var(--ship-fill)" />
+                <rect x="22" y="27" width="18" height="4" rx="2" fill="var(--gun-fill)" />
+                <rect x="80" y="27" width="18" height="4" rx="2" fill="var(--gun-fill)" />
+            </svg>
+        </div>
+        <h1 class="game-title">BATTLESHIP</h1>
+        <p class="game-subtitle">Two-player naval combat</p>
+    </div>
+
+    <div class="home-card">
+        @if (_mode == HomeMode.Menu)
+        {
+            <div class="name-section">
+                <label for="player-name" class="field-label">Your Name</label>
+                <input id="player-name"
+                       class="text-input"
+                       type="text"
+                       placeholder="Captain..."
+                       maxlength="20"
+                       @bind="_playerName"
+                       @bind:event="oninput" />
+            </div>
+
+            <div class="button-row">
+                <button class="btn btn-primary"
+                        disabled="@(!IsNameValid)"
+                        @onclick="ShowNewGame">
+                    New Game
+                </button>
+                <button class="btn btn-secondary"
+                        disabled="@(!IsNameValid)"
+                        @onclick="ShowJoinGame">
+                    Join Game
+                </button>
+            </div>
+        }
+        else if (_mode == HomeMode.NewGame)
+        {
+            <p class="instruction">Creating a game for <strong>@_playerName</strong></p>
+            <div class="button-row">
+                <button class="btn btn-primary" @onclick="CreateGame">
+                    Create &amp; Get Code
+                </button>
+                <button class="btn btn-ghost" @onclick="() => _mode = HomeMode.Menu">
+                    ← Back
+                </button>
+            </div>
+        }
+        else if (_mode == HomeMode.JoinGame)
+        {
+            <p class="instruction">Playing as <strong>@_playerName</strong></p>
+            <div class="join-section">
+                <label for="game-code" class="field-label">Game Code</label>
+                <input id="game-code"
+                       class="text-input code-input"
+                       type="text"
+                       placeholder="XXXX"
+                       maxlength="4"
+                       @bind="_gameCode"
+                       @bind:event="oninput"
+                       @onkeydown="OnCodeKeyDown" />
+                @if (_joinError is not null)
+                {
+                    <p class="error-msg">@_joinError</p>
+                }
+            </div>
+            <div class="button-row">
+                <button class="btn btn-primary"
+                        disabled="@(_gameCode.Length < 4)"
+                        @onclick="JoinGame">
+                    Join Game
+                </button>
+                <button class="btn btn-ghost" @onclick="() => { _mode = HomeMode.Menu; _joinError = null; }">
+                    ← Back
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private enum HomeMode { Menu, NewGame, JoinGame }
+    private HomeMode _mode = HomeMode.Menu;
+
+    private string _playerName = "";
+    private string _gameCode = "";
+    private string? _joinError;
+
+    private bool IsNameValid => _playerName.Trim().Length >= 1;
+
+    private void ShowNewGame() => _mode = HomeMode.NewGame;
+    private void ShowJoinGame() => _mode = HomeMode.JoinGame;
+
+    private void OnCodeKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _gameCode.Length >= 4)
+            JoinGame();
+    }
+
+    private void CreateGame()
+    {
+        if (!IsNameValid) return;
+        var token = Guid.NewGuid().ToString("N");
+        Nav.NavigateTo($"/lobby/new?name={Uri.EscapeDataString(_playerName.Trim())}&token={token}");
+    }
+
+    private void JoinGame()
+    {
+        if (!IsNameValid) return;
+        var code = _gameCode.Trim().ToUpperInvariant();
+        var session = SessionService.GetSession(code);
+        if (session is null)
+        {
+            _joinError = "Game not found. Check the code and try again.";
+            return;
+        }
+        if (session.IsFull)
+        {
+            _joinError = "This game is already full.";
+            return;
+        }
+        var token = Guid.NewGuid().ToString("N");
+        Nav.NavigateTo($"/lobby/join?code={code}&name={Uri.EscapeDataString(_playerName.Trim())}&token={token}");
+    }
+}

@@ -1,0 +1,157 @@
+@page "/lobby/new"
+@page "/lobby/join"
+@rendermode InteractiveServer
+@inject GameSessionService SessionService
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Lobby — Battleship</PageTitle>
+
+<div class="lobby-screen">
+    @if (_session is null)
+    {
+        <div class="lobby-loading">
+            <div class="spinner"></div>
+            <p>Setting up your game…</p>
+        </div>
+    }
+    else if (_error is not null)
+    {
+        <div class="lobby-error">
+            <p class="error-msg">@_error</p>
+            <a href="/" class="btn btn-ghost">← Back to Home</a>
+        </div>
+    }
+    else
+    {
+        <div class="lobby-content">
+            <div class="lobby-header">
+                <h2>Game Lobby</h2>
+            </div>
+
+            @if (_isHost)
+            {
+                <div class="code-display">
+                    <span class="code-label">Share this code with your opponent:</span>
+                    <span class="code-value">@_session.Code</span>
+                </div>
+            }
+
+            <div class="players-panel">
+                <div class="player-slot @(_session.Host is not null ? "filled" : "empty")">
+                    @if (_session.Host is not null)
+                    {
+                        <span class="player-avatar host-avatar">⚓</span>
+                        <span class="player-name">@_session.Host.Name</span>
+                        <span class="player-badge host-badge">Host</span>
+                    }
+                    else
+                    {
+                        <span class="player-avatar empty-avatar">?</span>
+                        <span class="player-name waiting">Waiting…</span>
+                    }
+                </div>
+
+                <div class="vs-divider">VS</div>
+
+                <div class="player-slot @(_session.Guest is not null ? "filled" : "empty")">
+                    @if (_session.Guest is not null)
+                    {
+                        <span class="player-avatar guest-avatar">🎯</span>
+                        <span class="player-name">@_session.Guest.Name</span>
+                        <span class="player-badge guest-badge">Guest</span>
+                    }
+                    else
+                    {
+                        <span class="player-avatar empty-avatar">?</span>
+                        <span class="player-name waiting">Waiting for opponent…</span>
+                    }
+                </div>
+            </div>
+
+            @if (_session.Phase == GamePhase.Lobby)
+            {
+                <div class="lobby-status">
+                    <div class="dot-pulse">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <p class="status-text">Waiting for a second player to join…</p>
+                </div>
+            }
+            else if (_session.Phase == GamePhase.Placement)
+            {
+                <div class="lobby-status ready">
+                    <p class="status-text">Both players connected! Heading to ship placement…</p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? Name { get; set; }
+    [SupplyParameterFromQuery] public string? Token { get; set; }
+    [SupplyParameterFromQuery] public string? Code { get; set; }
+
+    private GameSession? _session;
+    private bool _isHost;
+    private string? _error;
+    private bool _navigated;
+
+    protected override void OnInitialized()
+    {
+        var path = Nav.Uri;
+        _isHost = path.Contains("/lobby/new");
+
+        var playerName = Name ?? "Player";
+        var connectionId = Token ?? Guid.NewGuid().ToString("N");
+
+        if (_isHost)
+        {
+            _session = SessionService.CreateSession(playerName, connectionId);
+        }
+        else
+        {
+            var code = (Code ?? "").Trim().ToUpperInvariant();
+            if (string.IsNullOrEmpty(code))
+            {
+                _error = "No game code provided.";
+                return;
+            }
+
+            _session = SessionService.JoinSession(code, playerName, connectionId);
+            if (_session is null)
+            {
+                _error = "Could not join game. The code may be invalid or the game is full.";
+                return;
+            }
+        }
+
+        _session.StateChanged += OnSessionStateChanged;
+        CheckForAutoNavigate();
+    }
+
+    private async void OnSessionStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(CheckForAutoNavigate);
+    }
+
+    private void CheckForAutoNavigate()
+    {
+        if (_navigated || _session is null) return;
+        if (_session.Phase == GamePhase.Placement)
+        {
+            _navigated = true;
+            // Short delay so the player sees the "Both connected!" message
+            _ = Task.Delay(800).ContinueWith(_ =>
+                InvokeAsync(() => Nav.NavigateTo($"/placement/{_session.Code}?name={Uri.EscapeDataString(Name ?? "Player")}&token={Uri.EscapeDataString(Token ?? "")}")));
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_session is not null)
+            _session.StateChanged -= OnSessionStateChanged;
+    }
+}
