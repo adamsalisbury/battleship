@@ -49,6 +49,11 @@ public class GameSessionService
         if (session.IsFull) return null;
         if (session.Phase != GamePhase.Lobby) return null;
 
+        // Reject if the guest name is the same as the host (case-insensitive) — duplicate names
+        // would break GetPlayerByName lookups throughout the session.
+        if (session.Host?.Name.Equals(guestName, StringComparison.OrdinalIgnoreCase) == true)
+            return null;
+
         var guest = new Player(guestName, connectionId, isHost: false);
         var added = session.AddGuest(guest);
         if (!added) return null;

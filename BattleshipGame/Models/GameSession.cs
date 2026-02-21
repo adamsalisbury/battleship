@@ -248,7 +248,6 @@ public class GameSession
         {
             var player = GetPlayerByName(playerName);
             player?.Board.ClearShips();
-            player?.Board.IsReady.Equals(false); // not ready any more
             if (player is not null) player.Board.IsReady = false;
             Touch();
         }
