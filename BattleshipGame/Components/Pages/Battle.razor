@@ -3,6 +3,7 @@
 @inject GameSessionService SessionService
 @inject NavigationManager Nav
 @inject PlayerCircuitTracker CircuitTracker
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Battle — Battleship</PageTitle>
@@ -38,6 +39,9 @@ else
 {
     <div class="battle-screen">
 
+    @* Hidden live region — announces important game events to screen readers *@
+    <div class="sr-only" role="status" aria-live="assertive" aria-atomic="true">@_srAnnouncement</div>
+
     @* Disconnect banner — shown when the opponent's connection has dropped *@
     @if (IsOpponentDisconnected)
     {
@@ -56,9 +60,10 @@ else
         </div>
     }
 
-        <!-- Turn indicator -->
+        <!-- Turn indicator — aria-live so screen readers announce turn changes -->
         <div class="battle-header">
-            <div class="turn-indicator @(IsMyTurn && !IsOpponentDisconnected ? "my-turn" : "their-turn")">
+            <div class="turn-indicator @(IsMyTurn && !IsOpponentDisconnected ? "my-turn" : "their-turn")"
+                 aria-live="polite" aria-atomic="true">
                 @if (_session.Phase == GamePhase.Finished)
                 {
                     <span>⚓ Battle Over</span>
@@ -142,20 +147,22 @@ else
             <div class="grid-section my-grid-section">
                 <h3 class="grid-title">Your Waters — @_playerName</h3>
                 <p class="grid-hint">Opponent fires here</p>
-                <div class="game-grid battle-own-grid">
-                    <div class="grid-corner"></div>
+                <div class="game-grid battle-own-grid" role="grid" aria-label="Your waters">
+                    <div class="grid-corner" role="presentation"></div>
                     @foreach (var label in GridConstants.ColumnLabels)
                     {
-                        <div class="grid-col-label">@label</div>
+                        <div class="grid-col-label" role="columnheader">@label</div>
                     }
                     @for (int row = 0; row < GridConstants.GridSize; row++)
                     {
                         var r = row;
-                        <div class="grid-row-label">@(row + 1)</div>
+                        <div class="grid-row-label" role="rowheader">@(row + 1)</div>
                         @for (int col = 0; col < GridConstants.GridSize; col++)
                         {
                             var c = col;
-                            <div class="grid-cell @GetOwnCellClass(r, c)"></div>
+                            <div class="grid-cell @GetOwnCellClass(r, c)"
+                                 role="img"
+                                 aria-label="@GetOwnCellAriaLabel(r, c)"></div>
                         }
                     }
                 </div>
@@ -168,10 +175,11 @@ else
                         var ownStatusClass = GetOwnShipStatusClass(ship);
                         var ownStatusLabel = GetOwnShipStatusLabel(ship);
                         var ownShipNameLower = ship.Name.ToLower();
-                        <div class="fleet-status-row @ownStatusClass">
-                            <span class="fleet-status-color-dot color-dot-@ownShipNameLower"></span>
+                        <div class="fleet-status-row @ownStatusClass"
+                             aria-label="@ship.Name, @ownStatusLabel">
+                            <span class="fleet-status-color-dot color-dot-@ownShipNameLower" aria-hidden="true"></span>
                             <span class="fleet-status-name">@ship.Name</span>
-                            <span class="fleet-status-pips">
+                            <span class="fleet-status-pips" aria-hidden="true">
                                 @for (int i = 0; i < ship.Size; i++)
                                 {
                                     <span class="fleet-pip @(i < ship.HitCount ? "pip-hit" : $"pip-{ownShipNameLower}")"></span>
@@ -184,7 +192,7 @@ else
             </div>
 
             <!-- Divider -->
-            <div class="battle-divider">
+            <div class="battle-divider" aria-hidden="true">
                 <span class="battle-vs">⚓</span>
             </div>
 
@@ -198,28 +206,36 @@ else
                     }
                     else if (IsMyTurn)
                     {
-                        <span>Click to fire</span>
+                        <span>Click or press Enter to fire</span>
                     }
                     else
                     {
                         <span>Waiting for opponent's shot…</span>
                     }
                 </p>
-                <div class="game-grid battle-enemy-grid">
-                    <div class="grid-corner"></div>
+                <div class="game-grid battle-enemy-grid"
+                     role="grid"
+                     aria-label="Enemy waters — @(IsMyTurn ? "your turn to fire" : "waiting for opponent")">
+                    <div class="grid-corner" role="presentation"></div>
                     @foreach (var label in GridConstants.ColumnLabels)
                     {
-                        <div class="grid-col-label">@label</div>
+                        <div class="grid-col-label" role="columnheader">@label</div>
                     }
                     @for (int row = 0; row < GridConstants.GridSize; row++)
                     {
                         var r = row;
-                        <div class="grid-row-label">@(row + 1)</div>
+                        <div class="grid-row-label" role="rowheader">@(row + 1)</div>
                         @for (int col = 0; col < GridConstants.GridSize; col++)
                         {
                             var c = col;
                             <div class="grid-cell @GetEnemyCellClass(r, c)"
-                                 @onclick="() => OnEnemyCellClick(r, c)"></div>
+                                 id="enemy-cell-@r-@c"
+                                 role="@GetEnemyCellRole(r, c)"
+                                 aria-label="@GetEnemyCellAriaLabel(r, c)"
+                                 tabindex="@GetEnemyCellTabIndex(r, c)"
+                                 @onclick="() => OnEnemyCellClick(r, c)"
+                                 @onfocus="() => OnEnemyCellFocus(r, c)"
+                                 @onkeydown="e => OnEnemyCellKeyDown(e, r, c)"></div>
                         }
                     }
                 </div>
@@ -236,10 +252,11 @@ else
                         var enemyStatusLabel = enemyIsSunk ? "Sunk" : "Active";
                         var enemyStatusClass = enemyIsSunk ? "fleet-status-sunk" : "fleet-status-active";
                         var enemyShipNameLower = enemyShipName.ToLower();
-                        <div class="fleet-status-row @enemyStatusClass">
-                            <span class="fleet-status-color-dot color-dot-@enemyShipNameLower"></span>
+                        <div class="fleet-status-row @enemyStatusClass"
+                             aria-label="Enemy @enemyShipName, @enemyStatusLabel">
+                            <span class="fleet-status-color-dot color-dot-@enemyShipNameLower" aria-hidden="true"></span>
                             <span class="fleet-status-name">@enemyShipName</span>
-                            <span class="fleet-status-pips">
+                            <span class="fleet-status-pips" aria-hidden="true">
                                 @for (int i = 0; i < enemyShipSize; i++)
                                 {
                                     <span class="fleet-pip @(enemyIsSunk ? "pip-sunk" : $"pip-{enemyShipNameLower}")"></span>
@@ -384,6 +401,16 @@ else
     private string _toastClass = "";
     private System.Threading.Timer? _toastTimer;
 
+    // ─── Accessibility state ───────────────────────────────────────────────────
+    /// <summary>Text announced to screen readers via the assertive live region.</summary>
+    private string _srAnnouncement = "";
+    /// <summary>Last shot we announced, used to avoid double-announcing opponent shots.</summary>
+    private ShotRecord? _lastAnnouncedShot;
+    /// <summary>Roving tabindex: row of the currently focused enemy cell (-1 = none tracked).</summary>
+    private int _focusRow = -1;
+    /// <summary>Roving tabindex: column of the currently focused enemy cell (-1 = none tracked).</summary>
+    private int _focusCol = -1;
+
     private bool IsMyTurn => _session?.ActivePlayer?.Name == _playerName;
 
     // ─── Disconnect state ─────────────────────────────────────────────────────
@@ -443,7 +470,34 @@ else
             await InvokeAsync(() => Nav.NavigateTo($"/placement/{Code}?name={name}&token={token}"));
             return;
         }
-        await InvokeAsync(StateHasChanged);
+
+        await InvokeAsync(() =>
+        {
+            // Announce opponent's shots via the SR live region.
+            // Own shots are announced in ShowToast to avoid double-announcing.
+            var lastShot = _session?.LastShot;
+            if (lastShot is not null && lastShot != _lastAnnouncedShot && lastShot.ShooterName == _opponentName)
+            {
+                _lastAnnouncedShot = lastShot;
+                var coord = FormatCoord(lastShot.Row, lastShot.Col);
+                _srAnnouncement = lastShot.Result switch
+                {
+                    ShotResult.Sunk => $"{_opponentName} fired at {coord} — your {lastShot.SunkShipName} is sunk!",
+                    ShotResult.Hit  => $"{_opponentName} fired at {coord} — hit!",
+                    ShotResult.Miss => $"{_opponentName} fired at {coord} — miss.",
+                    _               => ""
+                };
+            }
+            else if (_session?.Phase == GamePhase.Finished && _lastAnnouncedShot != _session.LastShot)
+            {
+                _lastAnnouncedShot = _session.LastShot;
+                _srAnnouncement = IsWinner
+                    ? "Battle over — you won! You sank all enemy ships."
+                    : $"Battle over — {_opponentName} won. Your fleet has been destroyed.";
+            }
+
+            StateHasChanged();
+        });
     }
 
     // ─── Shot firing ──────────────────────────────────────────────────────────
@@ -479,6 +533,15 @@ else
             _               => ("", "")
         };
 
+        // Also announce to screen readers via the assertive live region
+        _srAnnouncement = result switch
+        {
+            ShotResult.Miss => "Miss!",
+            ShotResult.Hit  => "Hit!",
+            ShotResult.Sunk => $"{sunkShipName} sunk!",
+            _               => ""
+        };
+
         // Schedule auto-dismiss
         _toastTimer = new System.Threading.Timer(async _ =>
         {
@@ -492,19 +555,65 @@ else
         }, null, 3500, System.Threading.Timeout.Infinite);
     }
 
+    // ─── Enemy grid keyboard navigation ───────────────────────────────────────
+
+    /// <summary>Called when a grid cell receives focus — updates the roving tabindex tracker.</summary>
+    private void OnEnemyCellFocus(int row, int col)
+    {
+        _focusRow = row;
+        _focusCol = col;
+    }
+
+    /// <summary>
+    /// Handles keyboard input on enemy grid cells.
+    /// Enter/Space fires a shot; arrow keys navigate to adjacent cells.
+    /// </summary>
+    private async Task OnEnemyCellKeyDown(KeyboardEventArgs e, int row, int col)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+            case " ":
+                OnEnemyCellClick(row, col);
+                break;
+            case "ArrowUp":
+                await MoveFocusTo(row - 1, col);
+                break;
+            case "ArrowDown":
+                await MoveFocusTo(row + 1, col);
+                break;
+            case "ArrowLeft":
+                await MoveFocusTo(row, col - 1);
+                break;
+            case "ArrowRight":
+                await MoveFocusTo(row, col + 1);
+                break;
+        }
+    }
+
+    /// <summary>Moves keyboard focus to the specified enemy grid cell (clamped to grid bounds).</summary>
+    private async Task MoveFocusTo(int row, int col)
+    {
+        if (row < 0 || row >= GridConstants.GridSize) return;
+        if (col < 0 || col >= GridConstants.GridSize) return;
+        _focusRow = row;
+        _focusCol = col;
+        await JS.InvokeVoidAsync("focusElement", $"enemy-cell-{row}-{col}");
+    }
+
     // ─── Shot history helpers ─────────────────────────────────────────────────
 
     /// <summary>The 5 most recent shots, newest first, for the shot history bar.</summary>
     private List<ShotRecord> RecentShots =>
         _session?.ShotHistory.AsEnumerable().Reverse().Take(5).ToList() ?? [];
 
-    /// <summary>Formats a grid coordinate as a human-readable string, e.g. "B7".</summary>
+    /// <summary>Formats a grid coordinate as Battleship notation, e.g. "B7".</summary>
     private static string FormatCoord(int row, int col) =>
         $"{GridConstants.ColumnLabels[col]}{row + 1}";
 
     // ─── Cell class helpers ───────────────────────────────────────────────────
 
-    /// <summary>CSS class for a cell on the player's own grid (shows ships + where opponent shot).</summary>
+    /// <summary>CSS class for a cell on the player's own grid (shows ships + opponent's shots).</summary>
     private string GetOwnCellClass(int row, int col)
     {
         var ownBoard = _session!.GetOwnBoard(_playerName)!;
@@ -548,6 +657,101 @@ else
         return IsMyTurn && _session.Phase == GamePhase.Battle && !IsOpponentDisconnected
             ? "cell-enemy-unknown cell-enemy-targetable"
             : "cell-enemy-unknown";
+    }
+
+    // ─── Accessibility label / role / tabindex helpers ────────────────────────
+
+    /// <summary>Accessible description for a cell on the player's own grid.</summary>
+    private string GetOwnCellAriaLabel(int row, int col)
+    {
+        var coord = FormatCoord(row, col);
+        var ownBoard = _session!.GetOwnBoard(_playerName)!;
+        var shotState = ownBoard.ShotGrid[row, col];
+
+        if (shotState == CellState.Miss) return $"{coord}, opponent missed";
+        if (shotState == CellState.Hit)
+        {
+            var hitShip = ownBoard.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+            return hitShip?.IsSunk == true
+                ? $"{coord}, your {hitShip.Name} — sunk"
+                : $"{coord}, your {hitShip?.Name ?? "ship"} — hit";
+        }
+
+        var ship = ownBoard.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+        return ship is not null
+            ? $"{coord}, your {ship.Name}"
+            : $"{coord}, open water";
+    }
+
+    /// <summary>Accessible description for a cell on the enemy grid.</summary>
+    private string GetEnemyCellAriaLabel(int row, int col)
+    {
+        var coord = FormatCoord(row, col);
+        var enemyBoard = _session!.GetOpponentBoard(_playerName)!;
+        var shotState = enemyBoard.ShotGrid[row, col];
+
+        if (shotState == CellState.Miss) return $"{coord}, miss";
+        if (shotState == CellState.Hit)
+        {
+            var ship = enemyBoard.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+            return ship?.IsSunk == true
+                ? $"{coord}, {ship.Name} — sunk"
+                : $"{coord}, hit";
+        }
+
+        // Unknown cell
+        return IsMyTurn && _session!.Phase == GamePhase.Battle && !IsOpponentDisconnected
+            ? $"{coord}, unknown — press Enter to fire"
+            : $"{coord}, unknown";
+    }
+
+    /// <summary>ARIA role for an enemy grid cell: button when targetable, img otherwise.</summary>
+    private string GetEnemyCellRole(int row, int col)
+    {
+        var enemyBoard = _session!.GetOpponentBoard(_playerName)!;
+        bool isTargetable = IsMyTurn
+            && _session!.Phase == GamePhase.Battle
+            && !IsOpponentDisconnected
+            && enemyBoard.ShotGrid[row, col] == CellState.Unknown;
+        return isTargetable ? "button" : "img";
+    }
+
+    /// <summary>
+    /// Roving tabindex for enemy grid cells.
+    /// Exactly one cell has tabindex=0 at any time: the tracked focus cell,
+    /// or the top-left-most unknown cell when none is tracked yet.
+    /// Non-targetable cells always return -1.
+    /// </summary>
+    private string GetEnemyCellTabIndex(int row, int col)
+    {
+        var enemyBoard = _session!.GetOpponentBoard(_playerName)!;
+        bool isTargetable = IsMyTurn
+            && _session!.Phase == GamePhase.Battle
+            && !IsOpponentDisconnected
+            && enemyBoard.ShotGrid[row, col] == CellState.Unknown;
+
+        if (!isTargetable) return "-1";
+
+        // Tracked focus cell is the active tabstop
+        if (_focusRow >= 0 && _focusCol >= 0)
+            return (_focusRow == row && _focusCol == col) ? "0" : "-1";
+
+        // No cell focused yet — first unknown cell serves as the entry tabstop
+        return IsFirstUnknownEnemyCell(row, col, enemyBoard) ? "0" : "-1";
+    }
+
+    /// <summary>Returns true if (row, col) is the top-left-most unknown cell on the enemy board.</summary>
+    private static bool IsFirstUnknownEnemyCell(int row, int col, PlayerBoard enemyBoard)
+    {
+        for (int r = 0; r < GridConstants.GridSize; r++)
+        {
+            for (int c = 0; c < GridConstants.GridSize; c++)
+            {
+                if (enemyBoard.ShotGrid[r, c] == CellState.Unknown)
+                    return r == row && c == col;
+            }
+        }
+        return false;
     }
 
     // ─── Fleet status helpers ─────────────────────────────────────────────────

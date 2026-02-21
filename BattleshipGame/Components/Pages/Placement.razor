@@ -5,6 +5,7 @@
 @inject GameSessionService SessionService
 @inject NavigationManager Nav
 @inject PlayerCircuitTracker CircuitTracker
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Place Ships — Battleship</PageTitle>
@@ -80,7 +81,7 @@ else
                         <span>
                             Placing <strong>@_selectedShipType</strong> (@((int)_selectedShipType.Value) cells,
                             @(_isHorizontal ? "Horizontal" : "Vertical")) —
-                            click to place, click ship again to cancel
+                            click or press Enter to place · press R to rotate · click ship again to cancel
                         </span>
                     }
                     else
@@ -89,25 +90,34 @@ else
                     }
                 </div>
 
-                <div class="game-grid" @onmouseleave="OnGridLeave">
+                <div class="game-grid"
+                     role="grid"
+                     aria-label="Ship placement grid"
+                     @onmouseleave="OnGridLeave">
                     <!-- Corner -->
-                    <div class="grid-corner"></div>
+                    <div class="grid-corner" role="presentation"></div>
                     <!-- Column labels -->
                     @foreach (var label in GridConstants.ColumnLabels)
                     {
-                        <div class="grid-col-label">@label</div>
+                        <div class="grid-col-label" role="columnheader">@label</div>
                     }
                     <!-- Rows -->
                     @for (int row = 0; row < GridConstants.GridSize; row++)
                     {
                         var r = row;
-                        <div class="grid-row-label">@(row + 1)</div>
+                        <div class="grid-row-label" role="rowheader">@(row + 1)</div>
                         @for (int col = 0; col < GridConstants.GridSize; col++)
                         {
                             var c = col;
                             <div class="grid-cell @GetCellClass(r, c)"
+                                 id="placement-cell-@r-@c"
+                                 role="gridcell"
+                                 aria-label="@GetPlacementCellAriaLabel(r, c)"
+                                 tabindex="@GetPlacementCellTabIndex(r, c)"
                                  @onmouseenter="() => OnCellHover(r, c)"
-                                 @onclick="() => OnCellClick(r, c)">
+                                 @onfocus="() => OnPlacementCellFocus(r, c)"
+                                 @onclick="() => OnCellClick(r, c)"
+                                 @onkeydown="e => OnPlacementCellKeyDown(e, r, c)">
                             </div>
                         }
                     }
@@ -129,8 +139,17 @@ else
                             + (isSelected ? " fleet-item-selected" : "")
                             + (isPlaced && !isSelected ? " fleet-item-placed" : "")
                             + (_myReady ? " fleet-item-disabled" : "");
+                        string itemLabel = isSelected ? $"{name} — currently placing"
+                            : isPlaced ? $"{name} — placed"
+                            : $"{name} — not placed. Press Enter to select.";
 
-                        <div class="@itemClass" @onclick="() => SelectShip(type)">
+                        <div class="@itemClass"
+                             role="button"
+                             tabindex="@(_myReady ? "-1" : "0")"
+                             aria-label="@itemLabel"
+                             aria-pressed="@isSelected.ToString().ToLower()"
+                             @onclick="() => SelectShip(type)"
+                             @onkeydown="e => OnFleetItemKeyDown(e, type)">
                             <div class="fleet-item-left">
                                 <span class="fleet-ship-name">@name</span>
                                 <div class="fleet-ship-pips">
@@ -163,13 +182,15 @@ else
                     <div class="fleet-controls">
 
                         <div class="orientation-row">
-                            <span class="orientation-label">Orientation</span>
+                            <span class="orientation-label">Orientation <kbd>R</kbd></span>
                             <div class="orientation-buttons">
                                 <button class="btn-orient @(_isHorizontal ? "orient-active" : "")"
+                                        aria-pressed="@_isHorizontal.ToString().ToLower()"
                                         @onclick='() => SetOrientation(true)'>
                                     ⟷ Horizontal
                                 </button>
                                 <button class="btn-orient @(!_isHorizontal ? "orient-active" : "")"
+                                        aria-pressed="@(!_isHorizontal).ToString().ToLower()"
                                         @onclick='() => SetOrientation(false)'>
                                     ⟵ Vertical
                                 </button>
@@ -240,6 +261,10 @@ else
     private int _hoverCol = -1;
     private HashSet<(int, int)>? _previewCells;
     private bool _previewValid;
+
+    // ── Roving tabindex for the placement grid ─────────────────────────────
+    private int _gridFocusRow = -1;
+    private int _gridFocusCol = -1;
 
     // ── Lifecycle ──────────────────────────────────────────────────────────
 
@@ -378,6 +403,117 @@ else
         _previewValid = !cells.Overlaps(occupied);
     }
 
+    // ── Keyboard Navigation — Placement Grid ───────────────────────────────
+
+    /// <summary>
+    /// When a grid cell gains focus (keyboard or mouse), update hover + roving tabindex.
+    /// </summary>
+    private void OnPlacementCellFocus(int row, int col)
+    {
+        _gridFocusRow = row;
+        _gridFocusCol = col;
+        OnCellHover(row, col);
+    }
+
+    /// <summary>
+    /// Handles keyboard input on placement grid cells.
+    /// Enter/Space places the ship; arrow keys navigate; R rotates orientation.
+    /// </summary>
+    private async Task OnPlacementCellKeyDown(KeyboardEventArgs e, int row, int col)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+            case " ":
+                OnCellClick(row, col);
+                break;
+            case "ArrowUp":
+                await MovePlacementFocusTo(row - 1, col);
+                break;
+            case "ArrowDown":
+                await MovePlacementFocusTo(row + 1, col);
+                break;
+            case "ArrowLeft":
+                await MovePlacementFocusTo(row, col - 1);
+                break;
+            case "ArrowRight":
+                await MovePlacementFocusTo(row, col + 1);
+                break;
+            case "r":
+            case "R":
+                SetOrientation(!_isHorizontal);
+                break;
+        }
+    }
+
+    /// <summary>Moves keyboard focus to the specified placement grid cell (clamped to bounds).</summary>
+    private async Task MovePlacementFocusTo(int row, int col)
+    {
+        if (row < 0 || row >= GridConstants.GridSize) return;
+        if (col < 0 || col >= GridConstants.GridSize) return;
+        _gridFocusRow = row;
+        _gridFocusCol = col;
+        OnCellHover(row, col);
+        await JS.InvokeVoidAsync("focusElement", $"placement-cell-{row}-{col}");
+    }
+
+    /// <summary>
+    /// Roving tabindex for the placement grid.
+    /// Cells are only navigable when a ship is selected and the player isn't ready.
+    /// Exactly one cell has tabindex=0: the tracked focus cell or (0,0) as entry point.
+    /// </summary>
+    private string GetPlacementCellTabIndex(int row, int col)
+    {
+        if (_myReady || _selectedShipType is null) return "-1";
+
+        if (_gridFocusRow >= 0 && _gridFocusCol >= 0)
+            return (_gridFocusRow == row && _gridFocusCol == col) ? "0" : "-1";
+
+        // Default entry point when no cell is focused yet
+        return (row == 0 && col == 0) ? "0" : "-1";
+    }
+
+    /// <summary>Accessible label for a placement grid cell.</summary>
+    private string GetPlacementCellAriaLabel(int row, int col)
+    {
+        var coord = $"{GridConstants.ColumnLabels[col]}{row + 1}";
+
+        if (_previewCells is not null && _previewCells.Contains((row, col)))
+        {
+            var validity = _previewValid ? "valid placement" : "invalid placement";
+            return $"{coord}, {_selectedShipType} preview — {validity}";
+        }
+
+        var ship = _myBoard?.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+        if (ship is not null) return $"{coord}, {ship.Name} placed";
+
+        return _selectedShipType is not null
+            ? $"{coord}, empty — press Enter to place {_selectedShipType}"
+            : $"{coord}, empty";
+    }
+
+    // ── Keyboard Navigation — Fleet Panel ──────────────────────────────────
+
+    /// <summary>
+    /// Handles keyboard input on fleet item buttons.
+    /// Enter/Space selects or deselects the ship; R rotates orientation.
+    /// </summary>
+    private void OnFleetItemKeyDown(KeyboardEventArgs e, ShipType type)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+            case " ":
+                SelectShip(type);
+                break;
+            case "r":
+            case "R":
+                if (_selectedShipType is not null && !_myReady)
+                    SetOrientation(!_isHorizontal);
+                break;
+        }
+    }
+
     // ── Ship Selection ─────────────────────────────────────────────────────
 
     private void SelectShip(ShipType type)
@@ -394,6 +530,9 @@ else
 
         _selectedShipType = type;
         _previewCells = null;
+        // Reset grid focus so the entry point defaults back to (0,0) for the new ship
+        _gridFocusRow = -1;
+        _gridFocusCol = -1;
         UpdatePreview();
     }
 

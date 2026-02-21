@@ -1609,3 +1609,49 @@ a:hover { text-decoration: underline; }
     from { opacity: 0; transform: translateY(-12px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ─── Accessibility ───────────────────────────────────────────── */
+
+/* Visually hidden — accessible to screen readers, invisible on screen */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Keyboard focus ring for grid cells (own and enemy grids) */
+.grid-cell:focus-visible {
+    outline: 3px solid var(--accent-blue);
+    outline-offset: -2px;
+    z-index: 2;
+    box-shadow: inset 0 0 0 2px rgba(42, 122, 255, 0.4), 0 0 0 4px rgba(42, 122, 255, 0.2);
+}
+
+/* Keyboard focus ring for fleet items in the placement panel */
+.fleet-item:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+    border-radius: var(--radius-md);
+}
+
+/* Keyboard shortcut hint chip (e.g. <kbd>R</kbd>) */
+kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    box-shadow: 0 1px 0 var(--border-default);
+    line-height: 1.4;
+    vertical-align: middle;
+}

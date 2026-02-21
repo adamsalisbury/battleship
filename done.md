@@ -1,5 +1,49 @@
 # Done — Chronological Log
 
+## Iteration 10 — Accessibility & Keyboard Navigation
+**Date:** 2026-02-21
+
+### What was done
+- **`wwwroot/js/game.js`** (new): Single exported function `focusElement(id)` — programmatically focuses a DOM element by ID, used for roving-tabindex grid navigation. Loaded via `<script src="js/game.js">` added to App.razor before blazor.web.js.
+- **Battle.razor — aria labels:**
+  - Own grid cells: `role="img"` + `aria-label` describing cell state (e.g. "B3, your Cruiser", "D5, opponent missed", "F7, your Battleship — sunk").
+  - Enemy grid cells: `role="button"` (targetable) or `role="img"` (already shot/not-your-turn) + `aria-label` (e.g. "A1, unknown — press Enter to fire", "C4, hit", "E6, Destroyer — sunk").
+  - Fleet status rows: `aria-label` summarises ship + status; pip spans are `aria-hidden`.
+  - Grid containers: `role="grid"` + descriptive `aria-label`.
+- **Battle.razor — keyboard navigation:**
+  - Enemy grid uses roving tabindex: exactly one targetable cell has `tabindex="0"` (the tracked focus cell, or the top-left-most unknown cell as entry point).
+  - `@onfocus` on each enemy cell updates `_focusRow/_focusCol`.
+  - `@onkeydown` on each enemy cell: Enter/Space fires shot; Arrow keys call `JS.InvokeVoidAsync("focusElement", ...)` to move focus to adjacent cell.
+  - `IJSRuntime JS` injected; `MoveFocusTo(row, col)` helper respects grid bounds.
+- **Battle.razor — screen reader live regions:**
+  - Assertive SR live region (`role="status" aria-live="assertive"`) at top of `.battle-screen` — holds `_srAnnouncement`.
+  - `ShowToast` sets `_srAnnouncement` with own shot result (e.g. "Hit!", "Destroyer sunk!").
+  - `OnSessionStateChanged` detects new opponent shots (compares `_session.LastShot` vs `_lastAnnouncedShot`) and announces result + coordinate. Game-over state also announced.
+  - Turn indicator container: `aria-live="polite" aria-atomic="true"`.
+  - Enemy grid hint updated: "Click or press Enter to fire".
+- **Placement.razor — aria labels:**
+  - Grid cells: `role="gridcell"` + `aria-label` reflecting placement state (e.g. "A1, Carrier preview — valid placement", "B3, Destroyer placed", "C5, empty — press Enter to place Submarine").
+  - Fleet items: `role="button"` + `tabindex="0/-1"` + `aria-label` + `aria-pressed` (true when selected).
+  - Grid: `role="grid"` + `aria-label="Ship placement grid"`.
+- **Placement.razor — keyboard navigation:**
+  - Fleet items: `@onkeydown` handles Enter/Space to select/deselect, R to rotate orientation.
+  - Placement grid: roving tabindex when a ship is selected (entry at (0,0), then arrow keys). `@onfocus` on cells calls `OnPlacementCellFocus` which updates hover preview for the focused cell. Arrow key navigation uses JS.InvokeVoidAsync to move focus. Enter/Space places the ship.
+  - R key works from grid cells and fleet items.
+  - Orientation buttons have `aria-pressed` attributes.
+- **Orientation hint:** `<kbd>R</kbd>` chip added to orientation label ("Orientation R") as a visual keyboard shortcut hint.
+- **app.css additions:**
+  - `.sr-only` — standard visually-hidden class (clip/overflow/absolute positioning).
+  - `.grid-cell:focus-visible` — blue glow + inset outline for keyboard focus ring.
+  - `.fleet-item:focus-visible` — blue outline + border-radius for fleet item focus.
+  - `kbd` — inline chip style (small mono font, border, box-shadow) for shortcut hints.
+
+### Notes
+- Build: 0 warnings, 0 errors. Tests: 40/40 passing.
+- No new unit tests required (accessibility is UI behaviour, not game logic).
+- Roving tabindex pattern keeps Tab key traversal clean — one entry point per grid section, then arrow key navigation within.
+
+---
+
 ## Iteration 9 — Session Expiry UX
 **Date:** 2026-02-21
 
