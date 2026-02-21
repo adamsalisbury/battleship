@@ -218,18 +218,110 @@
         @if (_session.Phase == GamePhase.Finished)
         {
             <div class="result-overlay">
-                <div class="result-card">
-                    @if (_session.Winner?.Name == _playerName)
-                    {
-                        <h2 class="result-win">🏆 Victory!</h2>
-                        <p>You sank all of @_opponentName's ships!</p>
-                    }
-                    else
-                    {
-                        <h2 class="result-loss">💀 Defeated</h2>
-                        <p>@_opponentName sank your entire fleet.</p>
-                    }
-                    <a href="/" class="btn btn-primary">Back to Home</a>
+                <div class="result-card result-card-wide">
+
+                    <!-- Banner -->
+                    <div class="result-banner">
+                        <p class="result-subtitle-small">⚓ Battle Over</p>
+                        @if (IsWinner)
+                        {
+                            <h2 class="result-win">🏆 Victory! You sank the fleet!</h2>
+                            <p class="result-desc">Commander @_playerName, you have won the Battle of the Seas.</p>
+                        }
+                        else
+                        {
+                            <h2 class="result-loss">💀 Defeat — Fleet Destroyed</h2>
+                            <p class="result-desc">@_opponentName has sunk your entire fleet.</p>
+                        }
+                    </div>
+
+                    <!-- Stats grid: winner on left, loser on right -->
+                    <div class="result-stats-grid">
+
+                        <div class="result-stat-col stat-col-winner">
+                            <div class="result-stat-header">
+                                <span class="result-player-icon">🏆</span>
+                                <span class="result-player-name">@WinnerName</span>
+                                <span class="result-role-badge badge-winner">WINNER</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Shots fired</span>
+                                <span class="result-stat-value">@GetShotCount(WinnerName)</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Hits</span>
+                                <span class="result-stat-value">@GetHitCount(WinnerName)</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Accuracy</span>
+                                <span class="result-stat-value">@GetAccuracy(WinnerName)</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Ships sunk</span>
+                                <span class="result-stat-value">@GetShipsSunkCount(WinnerName)<span class="result-stat-total">/5</span></span>
+                            </div>
+                        </div>
+
+                        <div class="result-vs-divider">VS</div>
+
+                        <div class="result-stat-col stat-col-loser">
+                            <div class="result-stat-header">
+                                <span class="result-player-icon">💀</span>
+                                <span class="result-player-name">@LoserName</span>
+                                <span class="result-role-badge badge-loser">DEFEATED</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Shots fired</span>
+                                <span class="result-stat-value">@GetShotCount(LoserName)</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Hits</span>
+                                <span class="result-stat-value">@GetHitCount(LoserName)</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Accuracy</span>
+                                <span class="result-stat-value">@GetAccuracy(LoserName)</span>
+                            </div>
+                            <div class="result-stat-row">
+                                <span class="result-stat-label">Ships sunk</span>
+                                <span class="result-stat-value">@GetShipsSunkCount(LoserName)<span class="result-stat-total">/5</span></span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Rematch voting -->
+                    <div class="result-actions">
+                        <button class="btn @(HasVotedRematch ? "btn-voted" : "btn-success")"
+                                @onclick="OnPlayAgain"
+                                disabled="@HasVotedRematch">
+                            @if (HasVotedRematch)
+                            {
+                                <span>✓ Rematch vote cast</span>
+                            }
+                            else
+                            {
+                                <span>🔄 Play Again</span>
+                            }
+                        </button>
+                        <a href="/" class="btn btn-ghost">← Back to Home</a>
+                    </div>
+
+                    <div class="result-vote-status">
+                        @if (_session.RematchVoteCount == 0)
+                        {
+                            <span>Click "Play Again" to propose a rematch.</span>
+                        }
+                        else if (_session.RematchVoteCount == 1 && HasVotedRematch)
+                        {
+                            <span>⏳ Waiting for @_opponentName to accept…</span>
+                        }
+                        else if (_session.RematchVoteCount == 1 && !HasVotedRematch)
+                        {
+                            <span>⚡ @_opponentName wants a rematch — accept above!</span>
+                        }
+                    </div>
+
                 </div>
             </div>
         }
@@ -252,6 +344,12 @@
     private System.Threading.Timer? _toastTimer;
 
     private bool IsMyTurn => _session?.ActivePlayer?.Name == _playerName;
+
+    // ─── Result screen properties ─────────────────────────────────────────────
+    private bool IsWinner => _session?.Winner?.Name == _playerName;
+    private string WinnerName => _session?.Winner?.Name ?? "";
+    private string LoserName => _session?.Loser?.Name ?? "";
+    private bool HasVotedRematch => _session?.HasVotedRematch(_playerName) ?? false;
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -280,6 +378,14 @@
 
     private async void OnSessionStateChanged()
     {
+        // Both players accepted a rematch — navigate to placement phase
+        if (_session?.Phase == GamePhase.Placement)
+        {
+            var name = Uri.EscapeDataString(Name ?? "");
+            var token = Uri.EscapeDataString(Token ?? "");
+            await InvokeAsync(() => Nav.NavigateTo($"/placement/{Code}?name={name}&token={token}"));
+            return;
+        }
         await InvokeAsync(StateHasChanged);
     }
 
@@ -419,6 +525,41 @@
         if (_session is null) return false;
         var board = _session.GetOpponentBoard(_playerName);
         return board?.Ships.FirstOrDefault(s => s.Type == type)?.IsSunk == true;
+    }
+
+    // ─── Rematch ──────────────────────────────────────────────────────────────
+
+    private void OnPlayAgain()
+    {
+        if (_session is null || HasVotedRematch) return;
+        _session.ProposeRematch(_playerName);
+    }
+
+    // ─── Result statistics helpers ────────────────────────────────────────────
+
+    /// <summary>Total shots fired by the named player.</summary>
+    private int GetShotCount(string playerName) =>
+        _session?.ShotHistory.Count(s => s.ShooterName == playerName) ?? 0;
+
+    /// <summary>Total hits (hit + sunk results) by the named player.</summary>
+    private int GetHitCount(string playerName) =>
+        _session?.ShotHistory.Count(s => s.ShooterName == playerName && s.Result != ShotResult.Miss) ?? 0;
+
+    /// <summary>Accuracy percentage for the named player, formatted as "N%".</summary>
+    private string GetAccuracy(string playerName)
+    {
+        var shots = GetShotCount(playerName);
+        if (shots == 0) return "–";
+        var hits = GetHitCount(playerName);
+        return $"{(int)Math.Round((double)hits / shots * 100)}%";
+    }
+
+    /// <summary>Number of opponent ships sunk by the named player.</summary>
+    private int GetShipsSunkCount(string playerName)
+    {
+        if (_session is null) return 0;
+        var opponentBoard = _session.GetOpponentBoard(playerName);
+        return opponentBoard?.Ships.Count(s => s.IsSunk) ?? 0;
     }
 
     // ─── Dispose ──────────────────────────────────────────────────────────────

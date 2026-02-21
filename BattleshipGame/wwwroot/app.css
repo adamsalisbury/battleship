@@ -1156,6 +1156,171 @@ a:hover { text-decoration: underline; }
 .shot-chip-latest .shot-chip-detail { font-weight: 600; }
 
 /* ═══════════════════════════════════════════════════════════════
+   RESULT SCREEN (Win / Loss + Rematch)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wide result card variant for the stats layout */
+.result-card-wide {
+    width: 760px;
+    max-width: 760px;
+    padding: 40px 48px;
+}
+
+/* Headline section */
+.result-banner {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.result-subtitle-small {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.result-desc {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+/* Two-column stat grid */
+.result-stats-grid {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    margin-bottom: 28px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.result-stat-col {
+    flex: 1;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.stat-col-winner { background: rgba(240, 165, 0, 0.05); }
+.stat-col-loser  { background: rgba(224, 48, 64, 0.04); }
+
+/* VS separator between columns */
+.result-vs-divider {
+    width: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border-left: 1px solid var(--border-default);
+    border-right: 1px solid var(--border-default);
+}
+
+/* Column header: icon + name + badge */
+.result-stat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.result-player-icon { font-size: 18px; line-height: 1; }
+
+.result-player-name {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-heading);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result-role-badge {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.badge-winner { background: rgba(240,165,0,0.15); color: var(--accent-gold); border: 1px solid rgba(240,165,0,0.3); }
+.badge-loser  { background: rgba(224,48,64,0.12);  color: var(--accent-red);  border: 1px solid rgba(224,48,64,0.3); }
+
+/* Individual stat row */
+.result-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.result-stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.result-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-heading);
+    font-family: var(--font-mono);
+}
+
+.result-stat-total {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Rematch action row */
+.result-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+/* Green "Play Again" button */
+.btn-success {
+    background: var(--accent-green);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(34,197,94,0.35);
+}
+.btn-success:hover:not(:disabled) {
+    background: #2dd262;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.5);
+}
+
+/* Muted state after the player has voted */
+.btn-voted {
+    background: rgba(34,197,94,0.10);
+    color: var(--accent-green);
+    border: 1px solid rgba(34,197,94,0.3);
+    cursor: default;
+}
+
+/* Voting status line beneath the buttons */
+.result-vote-status {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    min-height: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    KEYFRAMES
    ═══════════════════════════════════════════════════════════════ */
 

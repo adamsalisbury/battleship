@@ -139,7 +139,9 @@ public class GameSession
             if (Host!.Board.IsReady && Guest!.Board.IsReady)
             {
                 Phase = GamePhase.Battle;
-                ActivePlayer = Host; // Host always goes first
+                // Loser of previous game goes first in rematches; host goes first otherwise
+                ActivePlayer = _rematchFirstPlayer ?? Host;
+                _rematchFirstPlayer = null;
             }
 
             Touch();
@@ -255,40 +257,77 @@ public class GameSession
 
     // ─── Rematch ─────────────────────────────────────────────────────────────
 
+    /// <summary>Number of players who have voted for a rematch.</summary>
+    public int RematchVoteCount
+    {
+        get { lock (_lock) { return _rematchVotes.Count; } }
+    }
+
+    /// <summary>Returns true if the named player has voted for a rematch.</summary>
+    public bool HasVotedRematch(string playerName)
+    {
+        lock (_lock) { return _rematchVotes.Contains(playerName); }
+    }
+
     /// <summary>
-    /// Resets the session for a rematch. Swaps who goes first
-    /// (loser of previous game starts next).
+    /// Records a rematch vote from the named player. When both players have voted,
+    /// the session is automatically reset and advances to the Placement phase.
+    /// Returns false if the phase is not Finished or the player is unknown.
     /// </summary>
-    public void ResetForRematch()
+    public bool ProposeRematch(string playerName)
     {
         lock (_lock)
         {
-            if (Phase != GamePhase.Finished) return;
+            if (Phase != GamePhase.Finished) return false;
+            if (GetPlayerByName(playerName) is null) return false;
 
-            // Clear boards
-            Host!.Board.ClearShips();
-            Guest!.Board.ClearShips();
-            Host.Board.IsReady = false;
-            Guest.Board.IsReady = false;
+            _rematchVotes.Add(playerName);
 
-            // Clear shot history
-            ShotHistory.Clear();
-
-            // The loser of the previous game goes first in the next
-            var nextFirst = Loser;
-            Winner = null;
-
-            Phase = GamePhase.Placement;
-            ActivePlayer = null;
-
-            // We store "who goes first in battle" as a separate concept during rematch
-            // by swapping IsHost semantics — but since IsHost is init-only, we track
-            // it via a separate field instead.
-            _rematchFirstPlayer = nextFirst;
-
-            Touch();
+            if (_rematchVotes.Count >= 2)
+                ResetForRematchCore();
+            else
+                Touch();
         }
         RaiseStateChanged();
+        return true;
+    }
+
+    /// <summary>
+    /// Resets the session for a rematch. Swaps who goes first
+    /// (loser of previous game starts next). Can be called directly if needed.
+    /// </summary>
+    public void ResetForRematch()
+    {
+        lock (_lock) { ResetForRematchCore(); }
+        RaiseStateChanged();
+    }
+
+    /// <summary>Core reset logic — must be called while holding <see cref="_lock"/>.</summary>
+    private void ResetForRematchCore()
+    {
+        if (Phase != GamePhase.Finished) return;
+
+        // Save loser before clearing Winner (Loser is derived from Winner)
+        var nextFirst = Loser;
+
+        // Clear boards
+        Host!.Board.ClearShips();
+        Guest!.Board.ClearShips();
+        Host.Board.IsReady = false;
+        Guest.Board.IsReady = false;
+
+        // Clear shot history and rematch votes
+        ShotHistory.Clear();
+        _rematchVotes.Clear();
+
+        Winner = null;
+        Phase = GamePhase.Placement;
+        ActivePlayer = null;
+
+        // The loser of the previous game goes first in the next battle
+        _rematchFirstPlayer = nextFirst;
+
+        Touch();
     }
 
     // ─── Accessors ───────────────────────────────────────────────────────────
@@ -314,6 +353,7 @@ public class GameSession
     // ─── Private helpers ─────────────────────────────────────────────────────
 
     private Player? _rematchFirstPlayer;
+    private readonly HashSet<string> _rematchVotes = [];
 
     private void Touch() => LastActivityAt = DateTime.UtcNow;
 
