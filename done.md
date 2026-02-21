@@ -1,5 +1,23 @@
 # Done — Chronological Log
 
+## Iteration 11 — Technical Debt Sweep
+**Date:** 2026-02-21
+
+### What was done
+- **FluentAssertions removed**: FA 8.x now requires a commercial license. Removed `FluentAssertions` package reference from `BattleshipGame.Tests.csproj`. Replaced all FA assertion calls (`Should().Be(...)`, `.Should().BeTrue()`, etc.) in all four test files with equivalent xUnit-native assertions (`Assert.Equal`, `Assert.True`, `Assert.False`, `Assert.Null`, `Assert.NotNull`, `Assert.Same`, `Assert.NotEqual`, `Assert.Empty`, `Assert.Single`, `Assert.Matches`).
+- **ClearShips double-negation fixed**: Removed dead no-op line `player?.Board.IsReady.Equals(false)` from `GameSession.ClearShips`. The `IsReady = false` assignment on the following line correctly clears the flag; the Equals call was a pure no-op that could mislead future readers.
+- **Player name collision validation**: `GameSessionService.JoinSession` now rejects a guest whose name matches the host's name (case-insensitive). Prevents the `GetPlayerByName` lookup from being ambiguous, which would break shot firing, reconnect logic, and every other name-keyed operation.
+- **3 new unit tests** in `GameSessionServiceTests`:
+  - `JoinSession_SameNameAsHost_ReturnsNull` — exact case collision blocked.
+  - `JoinSession_SameNameAsHostCaseInsensitive_ReturnsNull` — lower-case variant also blocked.
+  - `JoinSession_DifferentName_Succeeds` — guard does not block legitimate joins.
+
+### Notes
+- Build: 0 warnings, 0 errors. Tests: 43/43 passing.
+- `GlobalUsings.cs` in the test project already imports `Xunit` globally — no per-file `using Xunit;` was needed for the new assertions.
+
+---
+
 ## Iteration 10 — Accessibility & Keyboard Navigation
 **Date:** 2026-02-21
 

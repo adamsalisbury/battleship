@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 10 complete: Accessibility & Keyboard Navigation. All interactive grid cells labelled with descriptive aria-label text (coordinates + state). Enemy grid cells receive `role="button"` and `tabindex` when targetable; arrow keys navigate between cells via roving tabindex pattern, Enter/Space fires a shot. Own grid cells receive `role="img"` with full state descriptions. Fleet panel items in Placement.razor are `role="button"` with tabindex, Enter/Space to select/deselect, R to rotate orientation; placement grid cells navigable via arrow keys + Enter/Space when a ship is selected. SR live region announces shot results (own: via assertive assertive region; opponent: detected in StateChanged event). Turn indicator has aria-live="polite". CSS adds `.sr-only`, `:focus-visible` rings for grid cells and fleet items, `kbd` chip style. `wwwroot/js/game.js` added (focusElement helper for programmatic focus). 40/40 tests passing, 0 warnings.
+- Iteration 11 complete: Technical Debt Sweep. Replaced FluentAssertions (now commercial-licensed) with xUnit-native assertions across all 4 test files. Removed FluentAssertions package from BattleshipGame.Tests.csproj. Fixed ClearShips double-negation no-op (removed dead `player?.Board.IsReady.Equals(false)` call). Added player name collision validation in JoinSession — rejects guest names that match the host name (case-insensitive). Added 3 new tests covering the collision guard. 43/43 tests passing, 0 warnings.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.
