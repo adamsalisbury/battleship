@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 7 complete: Visual polish pass. Shot miss animations (expanding ring ripple + dot pop-in), shot hit animations (orange burst overlay + ✕ cross pop-in with rotation), ship sunk flash (sunkFlash brightness burst on all sunk cells simultaneously). Turn indicator CSS transitions + scale-pulse spring animation on activation. Shot history bar chips use @key for stable DOM identity — new chips slide in. Enemy grid hover refined with stronger glow + targeting ＋ crosshair. Seven new @keyframes added.
+- Iteration 8 complete: Disconnect/reconnect handling. `GameCircuitHandler` (scoped `CircuitHandler`) detects WebSocket drops via `OnConnectionDownAsync`/`OnConnectionUpAsync`. `PlayerCircuitTracker` (scoped) maps each Blazor circuit to its session+player. All three active-game pages (Lobby, Placement, Battle) register the tracker. Animated disconnect banner shown to remaining player; game paused (shots disabled). Manual reconnect via same URL + token validated against stored `Player.ConnectionId`; 5-minute window. 40/40 tests passing, 0 warnings.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.

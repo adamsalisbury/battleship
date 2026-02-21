@@ -1,5 +1,29 @@
 # Done — Chronological Log
 
+## Iteration 8 — Disconnect / Reconnect Handling
+**Date:** 2026-02-21
+
+### What was done
+- **Player model**: Added `IsDisconnected` (bool) and `DisconnectedAt` (nullable DateTime) properties, plus `MarkDisconnected()` and `MarkReconnected()` methods.
+- **GameSession**: Added `MarkPlayerDisconnected(playerName)` — marks disconnected and fires `StateChanged`; `MarkPlayerReconnected(playerName, token)` — validates token before clearing (prevents slot hijacking); `IsPlayerDisconnected`, `IsOpponentDisconnected`, `IsDisconnectExpired` helpers (5-minute reconnect window).
+- **PlayerCircuitTracker** (new, scoped): Stores `SessionCode`, `PlayerName`, `Token` for the current Blazor circuit. Page components write to it in `OnInitialized`; the circuit handler reads it to identify which player disconnected.
+- **GameCircuitHandler** (new, scoped `CircuitHandler`): Subscribes to `OnConnectionDownAsync` (marks player disconnected immediately when WebSocket drops) and `OnConnectionUpAsync` (clears disconnect state when Blazor auto-reconnect succeeds). Fires before the 30-second circuit retention timeout.
+- **Program.cs**: Registered `PlayerCircuitTracker` (scoped) and `GameCircuitHandler` (scoped). Configured `DisconnectedCircuitRetentionPeriod = 30 s` and `DisconnectedCircuitMaxRetained = 20` so auto-reconnect attempts are brief; manual reconnect via URL is valid for 5 minutes.
+- **BattleshipHub**: Removed stale TODO comment; disconnect now fully handled via `CircuitHandler`.
+- **Lobby.razor**: Sets `CircuitTracker` fields on init so the handler can identify the player if they disconnect during the lobby.
+- **Placement.razor**: Registers circuit tracker; calls `MarkPlayerReconnected` on init if the returning player was previously disconnected. Shows animated disconnect banner (📡 orange/info style) with "expired" variant (⚠️ red) and Back to Home link.
+- **Battle.razor**: Same circuit tracker + reconnect logic as Placement. Turn indicator shows "⏸️ Game paused" state. `OnEnemyCellClick` blocks shots while opponent is disconnected. `GetEnemyCellClass` suppresses targetable hover cells while paused.
+- **app.css**: `.disconnect-banner`, `.disconnect-expired`, `.disconnect-icon`, `.disconnect-msg`, `.disconnect-home-btn` + `@keyframes disconnectSlideDown` (0.35s slide-in from top).
+- **9 new unit tests** covering all disconnect/reconnect paths: disconnect marks state, wrong token rejected, correct token reconnects, opponent detection, expiry logic, circuit tracker properties. Total: 40/40 passing.
+
+### Notes
+- Build: 0 warnings, 0 errors. Tests: 40/40 passing.
+- Auto-reconnect (brief drops, < 30 s): fully transparent — `OnConnectionUpAsync` clears state before the opponent even sees the banner.
+- Manual reconnect (tab closed/refreshed): player navigates back to same URL; page `OnInitialized` calls `MarkPlayerReconnected`; opponent banner disappears immediately via `StateChanged`.
+- Disconnect detection is immediate (fires when WebSocket drops), not delayed by circuit retention.
+
+---
+
 ## Iteration 7 — Visual Polish Pass
 **Date:** 2026-02-21
 

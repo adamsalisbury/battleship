@@ -2,9 +2,6 @@
 
 Items are prioritised top-to-bottom. Each item is one iteration.
 
-## Iteration 8
-- **Disconnect / Reconnect Handling** — If a player disconnects (browser close/refresh), detect it via SignalR OnDisconnectedAsync, display "Opponent disconnected" to remaining player. Allow reconnection via the same URL with same token within 5 minutes.
-
 ## Iteration 9
 - **Session Expiry UX** — If game session is not found (expired), show a clear error with "Start a new game" link rather than a generic error.
 
