@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 1 complete: Landing page, lobby flow, game code join system.
+- Iteration 2 complete: Full interactive ship placement UI. Players select ships from fleet panel, hover the grid to see a colour-coded preview, and click to place. Rotation toggle (H/V), Randomise, Clear, and Ready buttons implemented. Opponent's ready status updates in real time.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.

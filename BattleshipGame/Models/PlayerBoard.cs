@@ -65,6 +65,15 @@ public class PlayerBoard
     /// <summary>Removes all placed ships (used during re-placement).</summary>
     public void ClearShips() => Ships.Clear();
 
+    /// <summary>Removes the placed ship of the given type, if present. Returns true when found and removed.</summary>
+    public bool RemoveShip(ShipType type)
+    {
+        var ship = Ships.FirstOrDefault(s => s.Type == type);
+        if (ship is null) return false;
+        Ships.Remove(ship);
+        return true;
+    }
+
     /// <summary>Returns true if this board has all required fleet ships placed.</summary>
     public bool HasFullFleet() =>
         GridConstants.Fleet.All(f => Ships.Any(s => s.Type == f.Type));

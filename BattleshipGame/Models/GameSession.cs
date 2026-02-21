@@ -220,6 +220,25 @@ public class GameSession
         return placed;
     }
 
+    /// <summary>
+    /// Removes a specific ship type from the player's board during placement.
+    /// Returns false if the phase is wrong or the ship is not placed.
+    /// </summary>
+    public bool RemoveShip(string playerName, ShipType shipType)
+    {
+        bool removed;
+        lock (_lock)
+        {
+            if (Phase != GamePhase.Placement) return false;
+            var player = GetPlayerByName(playerName);
+            if (player is null) return false;
+            removed = player.Board.RemoveShip(shipType);
+            if (removed) Touch();
+        }
+        if (removed) RaiseStateChanged();
+        return removed;
+    }
+
     /// <summary>Clears all ships from the named player's board.</summary>
     public void ClearShips(string playerName)
     {

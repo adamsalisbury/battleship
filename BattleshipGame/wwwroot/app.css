@@ -29,6 +29,13 @@
     --ship-fill:      #3a5a8a;
     --gun-fill:       #2a4a7a;
 
+    /* Ship colours — distinct palette for grid visualisation */
+    --ship-carrier:    #1a5f8e;
+    --ship-battleship: #1a7a5c;
+    --ship-cruiser:    #8a5c1a;
+    --ship-submarine:  #5a3a8a;
+    --ship-destroyer:  #8a3a3a;
+
     --radius-sm:      6px;
     --radius-md:      10px;
     --radius-lg:      16px;
@@ -385,18 +392,18 @@ a:hover { text-decoration: underline; }
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 40px;
-    gap: 28px;
+    padding: 28px 40px;
+    gap: 20px;
 }
 
-.placement-header { text-align: center; }
+/* ─── Placement header & status bar ──────────────────────────── */
+.placement-header { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .placement-header h2 {
-    font-size: 32px;
+    font-size: 28px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--accent-teal);
 }
-.placement-subtitle { color: var(--text-secondary); margin-top: 6px; font-size: 15px; }
 
 .placement-status-panel {
     display: flex;
@@ -405,29 +412,303 @@ a:hover { text-decoration: underline; }
     background: var(--bg-card);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    padding: 16px 32px;
+    padding: 12px 28px;
 }
 
-.player-status { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 600; }
+.player-status { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
 .player-status.status-ready .status-badge { color: var(--accent-green); }
 .player-status.status-waiting .status-badge { color: var(--text-muted); }
+.status-name { color: var(--text-primary); }
 .status-badge { font-size: 13px; font-weight: 600; }
-
 .vs-small { font-size: 13px; color: var(--text-muted); font-weight: 700; }
 
-.placement-coming-soon {
+/* ─── Two-column layout ──────────────────────────────────────── */
+.placement-layout {
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 1100px;
+}
+
+/* ─── Left: grid area ────────────────────────────────────────── */
+.placement-grid-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.placement-hint {
+    font-size: 14px;
+    color: var(--text-secondary);
+    min-height: 20px;
+}
+.placement-hint strong { color: var(--text-primary); }
+.hint-ready { color: var(--accent-green); font-weight: 600; }
+
+/* ─── Game grid (shared between placement and battle) ────────── */
+.game-grid {
+    display: grid;
+    /* 1 row-label col + 10 data cols */
+    grid-template-columns: 36px repeat(10, 44px);
+    /* 1 col-header row + 10 data rows */
+    grid-template-rows: 28px repeat(10, 44px);
+    gap: 1px;
+    background: var(--border-subtle);
+    border: 2px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    user-select: none;
+}
+
+.grid-corner {
+    background: var(--bg-surface);
+}
+
+.grid-col-label {
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+}
+
+.grid-row-label {
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+/* Placement data cells */
+.grid-cell {
     background: var(--bg-card);
+    transition: background 70ms ease;
+    cursor: crosshair;
+}
+
+.cell-empty:hover {
+    background: rgba(42, 122, 255, 0.18);
+}
+
+.cell-preview-valid {
+    background: rgba(34, 197, 94, 0.45);
+    cursor: crosshair;
+}
+
+.cell-preview-invalid {
+    background: rgba(224, 48, 64, 0.38);
+    cursor: not-allowed;
+}
+
+/* Placed ship cells */
+.cell-ship { cursor: pointer; }
+
+.cell-ship-carrier    { background: var(--ship-carrier);    }
+.cell-ship-battleship { background: var(--ship-battleship); }
+.cell-ship-cruiser    { background: var(--ship-cruiser);    }
+.cell-ship-submarine  { background: var(--ship-submarine);  }
+.cell-ship-destroyer  { background: var(--ship-destroyer);  }
+
+.cell-ship-carrier:hover    { background: color-mix(in srgb, var(--ship-carrier)    70%, white); }
+.cell-ship-battleship:hover { background: color-mix(in srgb, var(--ship-battleship) 70%, white); }
+.cell-ship-cruiser:hover    { background: color-mix(in srgb, var(--ship-cruiser)    70%, white); }
+.cell-ship-submarine:hover  { background: color-mix(in srgb, var(--ship-submarine)  70%, white); }
+.cell-ship-destroyer:hover  { background: color-mix(in srgb, var(--ship-destroyer)  70%, white); }
+
+/* ─── Right: fleet panel ─────────────────────────────────────── */
+.placement-fleet-panel {
+    flex: 1;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.fleet-panel-header {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ─── Fleet list ─────────────────────────────────────────────── */
+.fleet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fleet-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.fleet-item:hover:not(.fleet-item-disabled) {
+    background: var(--bg-card-hover);
+    border-color: var(--border-default);
+}
+
+.fleet-item-selected {
+    border-color: var(--accent-blue);
+    background: rgba(42, 122, 255, 0.12);
+    box-shadow: 0 0 0 1px rgba(42, 122, 255, 0.3);
+}
+
+.fleet-item-placed:not(.fleet-item-selected) {
+    border-color: rgba(34, 197, 94, 0.35);
+}
+
+.fleet-item-disabled {
+    cursor: default;
+    opacity: 0.8;
+}
+
+.fleet-item-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fleet-ship-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.fleet-ship-pips {
+    display: flex;
+    gap: 3px;
+}
+
+.fleet-pip {
+    display: inline-block;
+    width: 16px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.pip-pending    { background: var(--border-default); }
+.pip-active     { background: var(--accent-blue); box-shadow: 0 0 6px rgba(42,122,255,0.6); }
+.pip-carrier    { background: var(--ship-carrier); }
+.pip-battleship { background: var(--ship-battleship); }
+.pip-cruiser    { background: var(--ship-cruiser); }
+.pip-submarine  { background: var(--ship-submarine); }
+.pip-destroyer  { background: var(--ship-destroyer); }
+
+.fleet-item-right {
+    flex-shrink: 0;
+}
+
+.fleet-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.fleet-badge-placed   { background: rgba(34,197,94,0.15);  color: var(--accent-green); border: 1px solid rgba(34,197,94,0.3); }
+.fleet-badge-selecting { background: rgba(42,122,255,0.15); color: var(--accent-blue);  border: 1px solid rgba(42,122,255,0.3); }
+.fleet-badge-pending  { background: var(--bg-surface);      color: var(--text-muted);   border: 1px solid var(--border-subtle); }
+
+/* ─── Fleet controls ─────────────────────────────────────────── */
+.fleet-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.orientation-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.orientation-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+}
+
+.orientation-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-orient {
+    flex: 1;
+    padding: 8px 14px;
     border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    padding: 48px;
-    text-align: center;
+    border-radius: var(--radius-sm);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-orient:hover:not(.orient-active) {
+    background: var(--bg-card-hover);
+    border-color: var(--border-accent);
+    color: var(--text-primary);
+}
+
+.btn-orient.orient-active {
+    background: rgba(42, 122, 255, 0.2);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.action-row {
+    display: flex;
+    gap: 10px;
+}
+
+.action-row .btn {
+    flex: 1;
+    padding: 9px 12px;
+    font-size: 14px;
+}
+
+.btn-ready {
+    width: 100%;
+    padding: 13px;
+    font-size: 15px;
+}
+
+/* ─── Ready / waiting state ──────────────────────────────────── */
+.ready-waiting {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+    padding: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
+    font-size: 14px;
+    text-align: center;
 }
-.placement-coming-soon .hint { font-size: 14px; color: var(--text-muted); }
 
 /* ═══════════════════════════════════════════════════════════════
    BATTLE SCREEN

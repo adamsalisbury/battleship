@@ -1,5 +1,7 @@
 @page "/placement/{Code}"
 @rendermode InteractiveServer
+@using BattleshipGame.Models
+@using BattleshipGame.Services
 @inject GameSessionService SessionService
 @inject NavigationManager Nav
 @implements IDisposable
@@ -23,31 +25,167 @@
     }
     else
     {
+        <!-- Header + status bar -->
         <div class="placement-header">
             <h2>Place Your Ships</h2>
-            <p class="placement-subtitle">
-                @_playerName vs @_opponentName — arrange your fleet before battle begins
-            </p>
-        </div>
-
-        <div class="placement-status-panel">
-            <div class="player-status @(_myReady ? "status-ready" : "status-waiting")">
-                <span>@_playerName</span>
-                <span class="status-badge">@(_myReady ? "✓ Ready" : "Placing…")</span>
-            </div>
-            <div class="vs-small">VS</div>
-            <div class="player-status @(_opponentReady ? "status-ready" : "status-waiting")">
-                <span>@_opponentName</span>
-                <span class="status-badge">@(_opponentReady ? "✓ Ready" : "Placing…")</span>
+            <div class="placement-status-panel">
+                <div class="player-status @(_myReady ? "status-ready" : "status-waiting")">
+                    <span class="status-name">@_playerName</span>
+                    <span class="status-badge">@(_myReady ? "✓ Ready" : "Placing…")</span>
+                </div>
+                <div class="vs-small">VS</div>
+                <div class="player-status @(_opponentReady ? "status-ready" : "status-waiting")">
+                    <span class="status-name">@_opponentName</span>
+                    <span class="status-badge">@(_opponentReady ? "✓ Ready" : "Placing…")</span>
+                </div>
             </div>
         </div>
 
-        <div class="placement-coming-soon">
-            <p>Ship placement UI coming in the next iteration.</p>
-            <p class="hint">For now, click <strong>Auto-Place &amp; Ready</strong> to continue.</p>
-            <button class="btn btn-primary" @onclick="AutoPlaceAndReady" disabled="@_myReady">
-                Auto-Place &amp; Ready
-            </button>
+        <!-- Main two-column layout -->
+        <div class="placement-layout">
+
+            <!-- LEFT: placement grid -->
+            <div class="placement-grid-area">
+                <div class="placement-hint">
+                    @if (_myReady)
+                    {
+                        <span class="hint-ready">⚓ Fleet deployed — waiting for @_opponentName…</span>
+                    }
+                    else if (_selectedShipType is not null)
+                    {
+                        <span>
+                            Placing <strong>@_selectedShipType</strong> (@((int)_selectedShipType.Value) cells,
+                            @(_isHorizontal ? "Horizontal" : "Vertical")) —
+                            click to place, click ship again to cancel
+                        </span>
+                    }
+                    else
+                    {
+                        <span>Select a ship from the panel, then click the grid to place it</span>
+                    }
+                </div>
+
+                <div class="game-grid" @onmouseleave="OnGridLeave">
+                    <!-- Corner -->
+                    <div class="grid-corner"></div>
+                    <!-- Column labels -->
+                    @foreach (var label in GridConstants.ColumnLabels)
+                    {
+                        <div class="grid-col-label">@label</div>
+                    }
+                    <!-- Rows -->
+                    @for (int row = 0; row < GridConstants.GridSize; row++)
+                    {
+                        var r = row;
+                        <div class="grid-row-label">@(row + 1)</div>
+                        @for (int col = 0; col < GridConstants.GridSize; col++)
+                        {
+                            var c = col;
+                            <div class="grid-cell @GetCellClass(r, c)"
+                                 @onmouseenter="() => OnCellHover(r, c)"
+                                 @onclick="() => OnCellClick(r, c)">
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- RIGHT: fleet panel -->
+            <div class="placement-fleet-panel">
+                <div class="fleet-panel-header">Your Fleet</div>
+
+                <div class="fleet-list">
+                    @foreach (var (shipType, shipName) in GridConstants.Fleet)
+                    {
+                        var type = shipType;
+                        var name = shipName;
+                        bool isPlaced = _myBoard?.Ships.Any(s => s.Type == type) ?? false;
+                        bool isSelected = _selectedShipType == type;
+                        string itemClass = "fleet-item"
+                            + (isSelected ? " fleet-item-selected" : "")
+                            + (isPlaced && !isSelected ? " fleet-item-placed" : "")
+                            + (_myReady ? " fleet-item-disabled" : "");
+
+                        <div class="@itemClass" @onclick="() => SelectShip(type)">
+                            <div class="fleet-item-left">
+                                <span class="fleet-ship-name">@name</span>
+                                <div class="fleet-ship-pips">
+                                    @for (int i = 0; i < (int)type; i++)
+                                    {
+                                        <span class="fleet-pip @GetPipClass(isPlaced, isSelected, name)"></span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="fleet-item-right">
+                                @if (isPlaced && !isSelected)
+                                {
+                                    <span class="fleet-badge fleet-badge-placed">✓ Placed</span>
+                                }
+                                else if (isSelected)
+                                {
+                                    <span class="fleet-badge fleet-badge-selecting">▶ Placing</span>
+                                }
+                                else
+                                {
+                                    <span class="fleet-badge fleet-badge-pending">Not placed</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (!_myReady)
+                {
+                    <div class="fleet-controls">
+
+                        <div class="orientation-row">
+                            <span class="orientation-label">Orientation</span>
+                            <div class="orientation-buttons">
+                                <button class="btn-orient @(_isHorizontal ? "orient-active" : "")"
+                                        @onclick='() => SetOrientation(true)'>
+                                    ⟷ Horizontal
+                                </button>
+                                <button class="btn-orient @(!_isHorizontal ? "orient-active" : "")"
+                                        @onclick='() => SetOrientation(false)'>
+                                    ⟵ Vertical
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="action-row">
+                            <button class="btn btn-secondary" @onclick="Randomise">⚄ Randomise</button>
+                            <button class="btn btn-ghost" @onclick="ClearAll"
+                                    disabled="@(!(_myBoard?.Ships.Count > 0))">
+                                ✕ Clear
+                            </button>
+                        </div>
+
+                        <button class="btn btn-primary btn-ready"
+                                @onclick="MarkReady"
+                                disabled="@(!AllShipsPlaced())">
+                            @if (AllShipsPlaced())
+                            {
+                                <span>⚓ Ready for Battle!</span>
+                            }
+                            else
+                            {
+                                var remaining = GridConstants.Fleet.Length - (_myBoard?.Ships.Count ?? 0);
+                                <span>Place @remaining more ship@(remaining == 1 ? "" : "s") to continue</span>
+                            }
+                        </button>
+
+                    </div>
+                }
+
+                @if (_myReady)
+                {
+                    <div class="ready-waiting">
+                        <div class="spinner"></div>
+                        <p>Waiting for @_opponentName to finish placing…</p>
+                    </div>
+                }
+            </div>
+
         </div>
     }
 </div>
@@ -58,12 +196,23 @@
     [SupplyParameterFromQuery] public string? Token { get; set; }
 
     private GameSession? _session;
+    private PlayerBoard? _myBoard;
     private string _playerName = "";
     private string _opponentName = "";
     private bool _myReady;
     private bool _opponentReady;
     private string? _error;
     private bool _navigated;
+
+    // Placement interaction state
+    private ShipType? _selectedShipType;
+    private bool _isHorizontal = true;
+    private int _hoverRow = -1;
+    private int _hoverCol = -1;
+    private HashSet<(int, int)>? _previewCells;
+    private bool _previewValid;
+
+    // ── Lifecycle ──────────────────────────────────────────────────────────
 
     protected override void OnInitialized()
     {
@@ -76,7 +225,7 @@
             return;
         }
 
-        RefreshStatus();
+        RefreshState();
         _session.StateChanged += OnSessionStateChanged;
     }
 
@@ -84,18 +233,19 @@
     {
         await InvokeAsync(() =>
         {
-            RefreshStatus();
+            RefreshState();
             StateHasChanged();
         });
 
         if (!_navigated && _session?.Phase == GamePhase.Battle)
         {
             _navigated = true;
-            await InvokeAsync(() => Nav.NavigateTo($"/battle/{Code}?name={Uri.EscapeDataString(Name ?? "Player")}&token={Uri.EscapeDataString(Token ?? "")}"));
+            await InvokeAsync(() =>
+                Nav.NavigateTo($"/battle/{Code}?name={Uri.EscapeDataString(Name ?? "Player")}&token={Uri.EscapeDataString(Token ?? "")}"));
         }
     }
 
-    private void RefreshStatus()
+    private void RefreshState()
     {
         if (_session is null) return;
         var me = _session.GetPlayerByName(_playerName);
@@ -103,22 +253,172 @@
         _opponentName = opponent?.Name ?? "Opponent";
         _myReady = me?.Board.IsReady ?? false;
         _opponentReady = opponent?.Board.IsReady ?? false;
+        _myBoard = _session.GetOwnBoard(_playerName);
     }
 
-    private void AutoPlaceAndReady()
+    // ── Grid Interaction ───────────────────────────────────────────────────
+
+    private void OnCellHover(int row, int col)
     {
-        if (_session is null) return;
-
-        // Auto-place ships
-        _session.ClearShips(_playerName);
-        var ships = PlacementService.GenerateRandomPlacement();
-        foreach (var ship in ships)
-            _session.PlaceShip(_playerName, ship);
-
-        // Mark ready
-        _session.MarkPlayerReady(_playerName);
-        RefreshStatus();
+        if (_myReady || _selectedShipType is null) return;
+        if (_hoverRow == row && _hoverCol == col) return;
+        _hoverRow = row;
+        _hoverCol = col;
+        UpdatePreview();
     }
+
+    private void OnGridLeave()
+    {
+        _hoverRow = -1;
+        _hoverCol = -1;
+        _previewCells = null;
+    }
+
+    private void OnCellClick(int row, int col)
+    {
+        if (_myReady || _selectedShipType is null) return;
+        if (!_previewValid || _previewCells is null) return;
+
+        // Remove existing ship of this type if it was already placed (re-placement)
+        _session!.RemoveShip(_playerName, _selectedShipType.Value);
+
+        var ship = new Ship
+        {
+            Type = _selectedShipType.Value,
+            IsHorizontal = _isHorizontal,
+            Row = row,
+            Column = col
+        };
+
+        if (_session.PlaceShip(_playerName, ship))
+        {
+            _selectedShipType = null;
+            _previewCells = null;
+            _hoverRow = -1;
+            _hoverCol = -1;
+        }
+
+        RefreshState();
+    }
+
+    private void UpdatePreview()
+    {
+        if (_selectedShipType is null || _hoverRow < 0)
+        {
+            _previewCells = null;
+            return;
+        }
+
+        var size = (int)_selectedShipType.Value;
+        var cells = new HashSet<(int, int)>();
+        for (var i = 0; i < size; i++)
+        {
+            cells.Add(_isHorizontal
+                ? (_hoverRow, _hoverCol + i)
+                : (_hoverRow + i, _hoverCol));
+        }
+        _previewCells = cells;
+
+        // Valid if all cells are in bounds and no overlap with OTHER ships
+        var inBounds = cells.All(c =>
+            c.Item1 >= 0 && c.Item1 < GridConstants.GridSize &&
+            c.Item2 >= 0 && c.Item2 < GridConstants.GridSize);
+
+        if (!inBounds)
+        {
+            _previewValid = false;
+            return;
+        }
+
+        // Exclude the ship currently being re-placed from the overlap check
+        var occupied = _myBoard?.Ships
+            .Where(s => s.Type != _selectedShipType.Value)
+            .SelectMany(s => s.Cells)
+            .ToHashSet() ?? [];
+
+        _previewValid = !cells.Overlaps(occupied);
+    }
+
+    // ── Ship Selection ─────────────────────────────────────────────────────
+
+    private void SelectShip(ShipType type)
+    {
+        if (_myReady) return;
+
+        // Toggle: clicking the same ship again deselects it
+        if (_selectedShipType == type)
+        {
+            _selectedShipType = null;
+            _previewCells = null;
+            return;
+        }
+
+        _selectedShipType = type;
+        _previewCells = null;
+        UpdatePreview();
+    }
+
+    private void SetOrientation(bool horizontal)
+    {
+        _isHorizontal = horizontal;
+        UpdatePreview();
+    }
+
+    // ── Actions ────────────────────────────────────────────────────────────
+
+    private void Randomise()
+    {
+        if (_myReady) return;
+        _session!.ClearShips(_playerName);
+        foreach (var ship in PlacementService.GenerateRandomPlacement())
+            _session.PlaceShip(_playerName, ship);
+        _selectedShipType = null;
+        _previewCells = null;
+        RefreshState();
+    }
+
+    private void ClearAll()
+    {
+        if (_myReady) return;
+        _session!.ClearShips(_playerName);
+        _selectedShipType = null;
+        _previewCells = null;
+        RefreshState();
+    }
+
+    private void MarkReady()
+    {
+        if (!AllShipsPlaced()) return;
+        _session!.MarkPlayerReady(_playerName);
+        _selectedShipType = null;
+        _previewCells = null;
+        RefreshState();
+    }
+
+    private bool AllShipsPlaced() => _myBoard?.HasFullFleet() ?? false;
+
+    // ── Cell Display ───────────────────────────────────────────────────────
+
+    private string GetCellClass(int row, int col)
+    {
+        // Preview overlay takes priority
+        if (_previewCells is not null && _previewCells.Contains((row, col)))
+            return _previewValid ? "cell-preview-valid" : "cell-preview-invalid";
+
+        // Ship occupies this cell
+        var ship = _myBoard?.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+        if (ship is not null)
+            return $"cell-ship cell-ship-{ship.Name.ToLower()}";
+
+        return "cell-empty";
+    }
+
+    private static string GetPipClass(bool isPlaced, bool isSelected, string shipName) =>
+        isSelected ? "pip-active"
+        : isPlaced ? $"pip-{shipName.ToLower()}"
+        : "pip-pending";
+
+    // ── Dispose ────────────────────────────────────────────────────────────
 
     public void Dispose()
     {

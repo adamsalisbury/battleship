@@ -2,9 +2,6 @@
 
 Items are prioritised top-to-bottom. Each item is one iteration.
 
-## Iteration 2
-- **Ship Placement UI** — Full interactive ship placement screen. Players drag or click to place each ship from the fleet list. Rotation toggle (H/V). Hover preview shows valid/invalid state. "Randomise" auto-places the entire fleet. "Clear" resets. "Ready" button only enabled when all 5 ships are placed. Opponent's "Placing…" / "✓ Ready" status visible in real time.
-
 ## Iteration 3
 - **Battle Grid UI** — Full interactive 10×10 battle grids. Own grid shows ships + opponent hits/misses. Enemy grid shows hits/misses (ships hidden, revealed on sink). Click to fire on enemy grid (only on your turn). Shot result toast notification (Hit / Miss / Sunk + ship name). Sunk ships revealed on enemy grid.
 
