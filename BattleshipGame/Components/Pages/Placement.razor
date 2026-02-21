@@ -9,42 +9,46 @@
 
 <PageTitle>Place Ships — Battleship</PageTitle>
 
-<div class="placement-screen">
+@* Three mutually exclusive top-level states:
+   1. Session not found / expired  → polished error card (full-screen centred)
+   2. Session loading (transient)  → spinner
+   3. Session ready                → full placement UI *@
 
-    @* Disconnect banner — shown when the opponent's connection has dropped *@
-    @if (_session is not null && _error is null && IsOpponentDisconnected)
-    {
-        <div class="disconnect-banner @(IsOpponentDisconnectExpired ? "disconnect-expired" : "")">
-            @if (IsOpponentDisconnectExpired)
-            {
-                <span class="disconnect-icon">⚠️</span>
-                <span class="disconnect-msg">@_opponentName has left the game.</span>
-                <a href="/" class="btn btn-ghost disconnect-home-btn">← Back to Home</a>
-            }
-            else
-            {
-                <span class="disconnect-icon">📡</span>
-                <span class="disconnect-msg">@_opponentName has disconnected — waiting for them to reconnect…</span>
-            }
-        </div>
-    }
+@if (_error is not null)
+{
+    <SessionExpiredCard Title="Game Not Found"
+                        Message=@($"Game session \"{Code}\" could not be found.")
+                        Detail="Sessions expire automatically after 2 hours of inactivity. Ask your opponent to start a new game." />
+}
+else if (_session is null)
+{
+    <div class="lobby-loading">
+        <div class="spinner"></div>
+        <p>Loading game…</p>
+    </div>
+}
+else
+{
+    <div class="placement-screen">
 
-    @if (_session is null)
-    {
-        <div class="lobby-loading">
-            <div class="spinner"></div>
-            <p>Loading game…</p>
-        </div>
-    }
-    else if (_error is not null)
-    {
-        <div class="lobby-error">
-            <p class="error-msg">@_error</p>
-            <a href="/" class="btn btn-ghost">← Back to Home</a>
-        </div>
-    }
-    else
-    {
+        @* Disconnect banner — shown when the opponent's connection has dropped *@
+        @if (IsOpponentDisconnected)
+        {
+            <div class="disconnect-banner @(IsOpponentDisconnectExpired ? "disconnect-expired" : "")">
+                @if (IsOpponentDisconnectExpired)
+                {
+                    <span class="disconnect-icon">⚠️</span>
+                    <span class="disconnect-msg">@_opponentName has left the game.</span>
+                    <a href="/" class="btn btn-ghost disconnect-home-btn">← Back to Home</a>
+                }
+                else
+                {
+                    <span class="disconnect-icon">📡</span>
+                    <span class="disconnect-msg">@_opponentName has disconnected — waiting for them to reconnect…</span>
+                }
+            </div>
+        }
+
         <!-- Header + status bar -->
         <div class="placement-header">
             <h2>Place Your Ships</h2>
@@ -207,8 +211,8 @@
             </div>
 
         </div>
-    }
-</div>
+    </div>
+}
 
 @code {
     [Parameter] public string Code { get; set; } = "";

@@ -292,6 +292,73 @@ a:hover { text-decoration: underline; }
     color: var(--text-secondary);
 }
 
+/* ─── Session Expired / Not Found Card ──────────────────────── */
+/* Full-page centred wrapper so the card sits in the middle
+   regardless of which game page renders it.                     */
+.expired-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.session-expired-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+    max-width: 460px;
+    width: 100%;
+    padding: 3rem 2.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    text-align: center;
+    animation: fadeSlideDown 0.35s ease both;
+}
+
+.expired-anchor-icon {
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.expired-title {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 0;
+}
+
+.expired-message {
+    font-size: 0.97rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.expired-detail {
+    font-size: 0.81rem;
+    color: var(--text-muted);
+    margin: 0;
+    font-style: italic;
+    line-height: 1.5;
+    padding: 0.5rem 1rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    width: 100%;
+}
+
+.expired-actions {
+    margin-top: 0.5rem;
+}
+
+.expired-cta {
+    min-width: 200px;
+}
+
 .lobby-content {
     background: var(--bg-card);
     border: 1px solid var(--border-default);

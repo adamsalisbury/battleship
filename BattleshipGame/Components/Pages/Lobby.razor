@@ -8,23 +8,29 @@
 
 <PageTitle>Lobby — Battleship</PageTitle>
 
-<div class="lobby-screen">
-    @if (_session is null)
-    {
+@* Three mutually exclusive top-level states:
+   1. Join failure / session not found  → polished error card (full-screen centred)
+   2. Session loading (transient)       → spinner
+   3. Session ready                     → lobby content *@
+
+@if (_error is not null)
+{
+    <SessionExpiredCard Title="Could Not Join Game"
+                        Message="This game session could not be found. It may have expired or the code is incorrect."
+                        Detail="Sessions expire after 2 hours of inactivity. Ask your opponent to start a new game." />
+}
+else if (_session is null)
+{
+    <div class="lobby-screen">
         <div class="lobby-loading">
             <div class="spinner"></div>
             <p>Setting up your game…</p>
         </div>
-    }
-    else if (_error is not null)
-    {
-        <div class="lobby-error">
-            <p class="error-msg">@_error</p>
-            <a href="/" class="btn btn-ghost">← Back to Home</a>
-        </div>
-    }
-    else
-    {
+    </div>
+}
+else
+{
+    <div class="lobby-screen">
         <div class="lobby-content">
             <div class="lobby-header">
                 <h2>Game Lobby</h2>
@@ -86,8 +92,8 @@
                 </div>
             }
         </div>
-    }
-</div>
+    </div>
+}
 
 @code {
     [SupplyParameterFromQuery] public string? Name { get; set; }
@@ -123,7 +129,7 @@
             _session = SessionService.JoinSession(code, playerName, connectionId);
             if (_session is null)
             {
-                _error = "Could not join game. The code may be invalid or the game is full.";
+                _error = "Could not join game.";
                 return;
             }
         }

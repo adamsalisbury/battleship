@@ -124,7 +124,7 @@
         var session = SessionService.GetSession(code);
         if (session is null)
         {
-            _joinError = "Game not found. Check the code and try again.";
+            _joinError = "Game not found — the session may have expired (sessions last 2 hours). Double-check the code.";
             return;
         }
         if (session.IsFull)

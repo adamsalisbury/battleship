@@ -7,10 +7,39 @@
 
 <PageTitle>Battle — Battleship</PageTitle>
 
-<div class="battle-screen">
+@* Three mutually exclusive top-level states:
+   1. Session not found / wrong phase → polished error card (full-screen centred)
+   2. Session loading (transient)     → spinner
+   3. Session ready for battle        → full battle UI *@
+
+@if (_error is not null)
+{
+    @if (_sessionNotFound)
+    {
+        <SessionExpiredCard Title="Game Not Found"
+                            Message=@($"Game session \"{Code}\" could not be found.")
+                            Detail="Sessions expire automatically after 2 hours of inactivity. Ask your opponent to start a new game." />
+    }
+    else
+    {
+        <SessionExpiredCard Title="Game Unavailable"
+                            Message="This game is not currently in the Battle phase."
+                            Detail="The game may have ended or been reset. Return home to start a fresh game." />
+    }
+}
+else if (_session is null)
+{
+    <div class="lobby-loading">
+        <div class="spinner"></div>
+        <p>Loading battle…</p>
+    </div>
+}
+else
+{
+    <div class="battle-screen">
 
     @* Disconnect banner — shown when the opponent's connection has dropped *@
-    @if (_session is not null && _error is null && IsOpponentDisconnected)
+    @if (IsOpponentDisconnected)
     {
         <div class="disconnect-banner @(IsOpponentDisconnectExpired ? "disconnect-expired" : "")">
             @if (IsOpponentDisconnectExpired)
@@ -27,22 +56,6 @@
         </div>
     }
 
-    @if (_session is null)
-    {
-        <div class="lobby-loading">
-            <div class="spinner"></div>
-            <p>Loading battle…</p>
-        </div>
-    }
-    else if (_error is not null)
-    {
-        <div class="lobby-error">
-            <p class="error-msg">@_error</p>
-            <a href="/" class="btn btn-ghost">← Back to Home</a>
-        </div>
-    }
-    else
-    {
         <!-- Turn indicator -->
         <div class="battle-header">
             <div class="turn-indicator @(IsMyTurn && !IsOpponentDisconnected ? "my-turn" : "their-turn")">
@@ -351,8 +364,8 @@
                 </div>
             </div>
         }
-    }
-</div>
+    </div>  @* end .battle-screen *@
+}           @* end @else (session ready) *@
 
 @code {
     [Parameter] public string Code { get; set; } = "";
@@ -363,6 +376,8 @@
     private string _playerName = "";
     private string _opponentName = "";
     private string? _error;
+    /// <summary>True when the session could not be found (vs. found but wrong phase).</summary>
+    private bool _sessionNotFound;
 
     // Toast notification state
     private string? _toastMessage;
@@ -391,6 +406,7 @@
         if (_session is null)
         {
             _error = "Game session not found.";
+            _sessionNotFound = true;
             return;
         }
 
