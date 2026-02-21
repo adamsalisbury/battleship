@@ -491,6 +491,7 @@ a:hover { text-decoration: underline; }
     background: var(--bg-card);
     transition: background 70ms ease;
     cursor: crosshair;
+    position: relative; /* Required for ::before / ::after shot markers */
 }
 
 .cell-empty:hover {
@@ -711,6 +712,160 @@ a:hover { text-decoration: underline; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   BATTLE CELL STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Own grid — cursor override (not clickable) ─────────────── */
+.battle-own-grid .grid-cell  { cursor: default; }
+.battle-own-grid .cell-ship  { cursor: default; }
+
+/* ─── Own grid — empty / unshot cell ─────────────────────────── */
+.cell-own-empty { background: var(--bg-card); }
+
+/* ─── Own grid — opponent's missed shot (grey dot) ────────────── */
+.cell-own-miss { background: var(--bg-card); }
+.cell-own-miss::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(138, 155, 184, 0.5);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* ─── Own grid — opponent hit your ship ──────────────────────── */
+.cell-own-hit {
+    background: rgba(180, 20, 20, 0.55);
+}
+.cell-own-hit::after {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 120, 120, 0.95);
+    line-height: 1;
+}
+
+/* ─── Own grid — opponent sunk one of your ships ─────────────── */
+.cell-own-sunk {
+    background: rgba(140, 10, 10, 0.80);
+}
+.cell-own-sunk::after {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 140, 140, 0.9);
+    line-height: 1;
+}
+
+/* ─── Enemy grid — cursor overrides ──────────────────────────── */
+.battle-enemy-grid .grid-cell:not(.cell-enemy-targetable) { cursor: default; }
+
+/* ─── Enemy grid — unknown / not yet fired at ────────────────── */
+.cell-enemy-unknown { background: var(--bg-panel); }
+
+/* ─── Enemy grid — unknown and targetable (my turn) ──────────── */
+.cell-enemy-targetable { cursor: crosshair; }
+.cell-enemy-targetable:hover {
+    background: rgba(42, 122, 255, 0.25);
+    box-shadow: inset 0 0 0 2px rgba(42, 122, 255, 0.55);
+}
+
+/* ─── Enemy grid — my missed shot (grey dot) ─────────────────── */
+.cell-enemy-miss { background: var(--bg-panel); }
+.cell-enemy-miss::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(138, 155, 184, 0.45);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* ─── Enemy grid — my hit (red + cross) ──────────────────────── */
+.cell-enemy-hit {
+    background: rgba(180, 20, 20, 0.6);
+}
+.cell-enemy-hit::after {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 120, 120, 0.95);
+    line-height: 1;
+}
+
+/* ─── Enemy grid — sunk ship revealed (ship colour + red tint) ── */
+/* .cell-ship-{name} provides the background colour */
+.cell-enemy-sunk {
+    box-shadow: inset 0 0 0 44px rgba(140, 0, 0, 0.45);
+    opacity: 0.85;
+}
+.cell-enemy-sunk::after {
+    content: "✕";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 140, 140, 0.9);
+    line-height: 1;
+}
+
+/* ─── Shot result toast ───────────────────────────────────────── */
+.shot-toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 36px;
+    border-radius: var(--radius-sm);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    z-index: 200;
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: var(--shadow-card);
+    animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.toast-miss {
+    background: rgba(30, 48, 80, 0.96);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+}
+
+.toast-hit {
+    background: rgba(180, 60, 20, 0.97);
+    border: 1px solid rgba(220, 100, 50, 0.6);
+    color: #fff;
+}
+
+.toast-sunk {
+    background: rgba(160, 10, 10, 0.97);
+    border: 1px solid rgba(220, 40, 40, 0.6);
+    color: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    BATTLE SCREEN
    ═══════════════════════════════════════════════════════════════ */
 
@@ -842,4 +997,9 @@ a:hover { text-decoration: underline; }
 @keyframes popIn {
     from { opacity: 0; transform: scale(0.85); }
     to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes toastSlideIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }

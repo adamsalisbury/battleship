@@ -23,11 +23,16 @@
     }
     else
     {
+        <!-- Turn indicator -->
         <div class="battle-header">
             <div class="turn-indicator @(IsMyTurn ? "my-turn" : "their-turn")">
-                @if (IsMyTurn)
+                @if (_session.Phase == GamePhase.Finished)
                 {
-                    <span>🎯 Your turn, @_playerName!</span>
+                    <span>⚓ Battle Over</span>
+                }
+                else if (IsMyTurn)
+                {
+                    <span>🎯 Your turn — pick a target, @_playerName</span>
                 }
                 else
                 {
@@ -36,28 +41,83 @@
             </div>
         </div>
 
+        <!-- Shot result toast -->
+        @if (_toastMessage is not null)
+        {
+            <div class="shot-toast @_toastClass" role="status" aria-live="polite">@_toastMessage</div>
+        }
+
+        <!-- Two battle grids -->
         <div class="battle-area">
+
+            <!-- Own grid: shows your ships + where opponent has shot -->
             <div class="grid-section my-grid-section">
                 <h3 class="grid-title">Your Waters — @_playerName</h3>
-                <p class="grid-hint">Your ships (opponent fires here)</p>
-                <div class="grid-placeholder">
-                    <p>Battle grid UI coming soon</p>
+                <p class="grid-hint">Opponent fires here</p>
+                <div class="game-grid battle-own-grid">
+                    <div class="grid-corner"></div>
+                    @foreach (var label in GridConstants.ColumnLabels)
+                    {
+                        <div class="grid-col-label">@label</div>
+                    }
+                    @for (int row = 0; row < GridConstants.GridSize; row++)
+                    {
+                        var r = row;
+                        <div class="grid-row-label">@(row + 1)</div>
+                        @for (int col = 0; col < GridConstants.GridSize; col++)
+                        {
+                            var c = col;
+                            <div class="grid-cell @GetOwnCellClass(r, c)"></div>
+                        }
+                    }
                 </div>
             </div>
 
+            <!-- Divider -->
             <div class="battle-divider">
                 <span class="battle-vs">⚓</span>
             </div>
 
+            <!-- Enemy grid: shows shots taken at opponent, click to fire -->
             <div class="grid-section enemy-grid-section">
                 <h3 class="grid-title">Enemy Waters — @_opponentName</h3>
-                <p class="grid-hint">Click to fire @(IsMyTurn ? "" : "(wait for your turn)")</p>
-                <div class="grid-placeholder">
-                    <p>Battle grid UI coming soon</p>
+                <p class="grid-hint">
+                    @if (_session.Phase == GamePhase.Finished)
+                    {
+                        <span>Battle concluded</span>
+                    }
+                    else if (IsMyTurn)
+                    {
+                        <span>Click to fire</span>
+                    }
+                    else
+                    {
+                        <span>Waiting for opponent's shot…</span>
+                    }
+                </p>
+                <div class="game-grid battle-enemy-grid">
+                    <div class="grid-corner"></div>
+                    @foreach (var label in GridConstants.ColumnLabels)
+                    {
+                        <div class="grid-col-label">@label</div>
+                    }
+                    @for (int row = 0; row < GridConstants.GridSize; row++)
+                    {
+                        var r = row;
+                        <div class="grid-row-label">@(row + 1)</div>
+                        @for (int col = 0; col < GridConstants.GridSize; col++)
+                        {
+                            var c = col;
+                            <div class="grid-cell @GetEnemyCellClass(r, c)"
+                                 @onclick="() => OnEnemyCellClick(r, c)"></div>
+                        }
+                    }
                 </div>
             </div>
+
         </div>
 
+        <!-- Game over overlay -->
         @if (_session.Phase == GamePhase.Finished)
         {
             <div class="result-overlay">
@@ -89,7 +149,14 @@
     private string _opponentName = "";
     private string? _error;
 
+    // Toast notification state
+    private string? _toastMessage;
+    private string _toastClass = "";
+    private System.Threading.Timer? _toastTimer;
+
     private bool IsMyTurn => _session?.ActivePlayer?.Name == _playerName;
+
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     protected override void OnInitialized()
     {
@@ -99,6 +166,12 @@
         if (_session is null)
         {
             _error = "Game session not found.";
+            return;
+        }
+
+        if (_session.Phase is not GamePhase.Battle and not GamePhase.Finished)
+        {
+            _error = "This game is not in the Battle phase.";
             return;
         }
 
@@ -113,9 +186,104 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    // ─── Shot firing ──────────────────────────────────────────────────────────
+
+    private void OnEnemyCellClick(int row, int col)
+    {
+        if (!IsMyTurn || _session is null) return;
+        if (_session.Phase != GamePhase.Battle) return;
+
+        var enemyBoard = _session.GetOpponentBoard(_playerName);
+        if (enemyBoard is null) return;
+        if (enemyBoard.ShotGrid[row, col] != CellState.Unknown) return;
+
+        var result = _session.FireShot(_playerName, row, col);
+        if (result is null) return;
+
+        var sunkShipName = result == ShotResult.Sunk ? _session.LastShot?.SunkShipName : null;
+        ShowToast(result.Value, sunkShipName);
+    }
+
+    /// <summary>Displays a shot result toast that auto-dismisses after 3.5 seconds.</summary>
+    private void ShowToast(ShotResult result, string? sunkShipName)
+    {
+        _toastTimer?.Dispose();
+
+        (_toastMessage, _toastClass) = result switch
+        {
+            ShotResult.Miss => ("💧 Miss!", "toast-miss"),
+            ShotResult.Hit  => ("🔥 Hit!", "toast-hit"),
+            ShotResult.Sunk => ($"💥 {sunkShipName} sunk!", "toast-sunk"),
+            _               => ("", "")
+        };
+
+        // Schedule auto-dismiss
+        _toastTimer = new System.Threading.Timer(async _ =>
+        {
+            _toastTimer?.Dispose();
+            _toastTimer = null;
+            await InvokeAsync(() =>
+            {
+                _toastMessage = null;
+                StateHasChanged();
+            });
+        }, null, 3500, System.Threading.Timeout.Infinite);
+    }
+
+    // ─── Cell class helpers ───────────────────────────────────────────────────
+
+    /// <summary>CSS class for a cell on the player's own grid (shows ships + where opponent shot).</summary>
+    private string GetOwnCellClass(int row, int col)
+    {
+        var ownBoard = _session!.GetOwnBoard(_playerName)!;
+        var shotState = ownBoard.ShotGrid[row, col];
+
+        if (shotState == CellState.Miss)
+            return "cell-own-miss";
+
+        if (shotState == CellState.Hit)
+        {
+            var hitShip = ownBoard.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+            return hitShip?.IsSunk == true ? "cell-own-sunk" : "cell-own-hit";
+        }
+
+        // Cell has not been shot — show ship if present
+        var ship = ownBoard.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+        return ship is not null
+            ? $"cell-ship cell-ship-{ship.Name.ToLower()}"
+            : "cell-own-empty";
+    }
+
+    /// <summary>CSS class for a cell on the enemy grid (tracks shots taken at opponent).</summary>
+    private string GetEnemyCellClass(int row, int col)
+    {
+        var enemyBoard = _session!.GetOpponentBoard(_playerName)!;
+        var shotState = enemyBoard.ShotGrid[row, col];
+
+        if (shotState == CellState.Miss)
+            return "cell-enemy-miss";
+
+        if (shotState == CellState.Hit)
+        {
+            // Reveal sunk ships on the enemy grid
+            var ship = enemyBoard.Ships.FirstOrDefault(s => s.Cells.Contains((row, col)));
+            if (ship?.IsSunk == true)
+                return $"cell-enemy-sunk cell-ship-{ship.Name.ToLower()}";
+            return "cell-enemy-hit";
+        }
+
+        // Unknown cell — targetable when it's my turn
+        return IsMyTurn && _session.Phase == GamePhase.Battle
+            ? "cell-enemy-unknown cell-enemy-targetable"
+            : "cell-enemy-unknown";
+    }
+
+    // ─── Dispose ──────────────────────────────────────────────────────────────
+
     public void Dispose()
     {
         if (_session is not null)
             _session.StateChanged -= OnSessionStateChanged;
+        _toastTimer?.Dispose();
     }
 }

@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 2 complete: Full interactive ship placement UI. Players select ships from fleet panel, hover the grid to see a colour-coded preview, and click to place. Rotation toggle (H/V), Randomise, Clear, and Ready buttons implemented. Opponent's ready status updates in real time.
+- Iteration 3 complete: Full interactive battle UI. Both players see their own 10×10 grid (ships + opponent's shots) and the enemy 10×10 grid (hits/misses, sunk ships revealed). Clicking an unknown enemy cell fires a shot (guarded by turn check). Shot result toast (💧 Miss / 🔥 Hit / 💥 Sunk) auto-dismisses after 3.5 seconds. Sunk enemy ships are visually revealed with ship colour + red tint. Game-over overlay displayed when all ships sunk.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.

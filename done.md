@@ -46,3 +46,35 @@
 - Added ship-colour CSS design tokens (`--ship-carrier`, `--ship-battleship`, etc.).
 - Added full placement-screen CSS: game grid, cell states (empty hover, preview valid/invalid, ship colours with hover lightening via `color-mix()`), fleet panel, fleet items, orientation buttons, ready button.
 - Build: 0 warnings, 0 errors. Tests: 31/31 passing.
+
+---
+
+## Iteration 3 — Battle Grid UI
+**Date:** 2026-02-21
+
+### What was done
+- Rewrote `Battle.razor` with fully interactive dual-grid battle UI:
+  - **Own grid (Your Waters)**: 10×10 grid showing own ship placements + opponent's shots.
+    - Untouched ship cells: coloured by ship type (reusing `cell-ship-{name}` CSS).
+    - Opponent misses: grey dot marker (`.cell-own-miss` via `::after` pseudo-element).
+    - Opponent hits: solid red background + ✕ cross marker (`.cell-own-hit`).
+    - Sunk ships: darker red + ✕ marker (`.cell-own-sunk`).
+    - No click handler — cursor set to `default` via `.battle-own-grid .grid-cell` override.
+  - **Enemy grid (Enemy Waters)**: 10×10 grid tracking shots taken at opponent.
+    - Unknown cells: dark panel colour; on your turn + hover → blue glow (`.cell-enemy-targetable`).
+    - Misses: grey dot marker (`.cell-enemy-miss`).
+    - Hits (alive ships): red background + ✕ cross (`.cell-enemy-hit`).
+    - Sunk ships revealed: ship colour + red inset shadow + ✕ (`.cell-enemy-sunk cell-ship-{name}`).
+  - Click fires a shot via `_session.FireShot(playerName, row, col)` with guards:
+    - Must be player's turn, must be Battle phase, cell must be Unknown.
+  - **Shot result toast**: fixed-position notification (`.shot-toast`) auto-dismisses after 3.5 s.
+    - 💧 Miss (grey) / 🔥 Hit (orange) / 💥 Sunk + ship name (red).
+    - Timer uses `System.Threading.Timer` + `InvokeAsync` for thread-safe dismiss.
+  - **Turn indicator**: shows "Your turn — pick a target" vs "Opponent is aiming…" vs "Battle Over".
+  - **Game over overlay**: existing result-overlay shown when Phase == Finished.
+- Added `position: relative` to `.grid-cell` (required for `::after` pseudo-element markers).
+- Added ~150 lines of battle-specific CSS:
+  - `.battle-own-grid` and `.battle-enemy-grid` grid-level cursor overrides.
+  - All cell state classes with pseudo-element markers.
+  - Toast styles (`.shot-toast`, `.toast-miss`, `.toast-hit`, `.toast-sunk`) with `toastSlideIn` keyframe.
+- Build: 0 warnings, 0 errors. Tests: 31/31 passing.

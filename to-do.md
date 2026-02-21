@@ -2,9 +2,6 @@
 
 Items are prioritised top-to-bottom. Each item is one iteration.
 
-## Iteration 3
-- **Battle Grid UI** — Full interactive 10×10 battle grids. Own grid shows ships + opponent hits/misses. Enemy grid shows hits/misses (ships hidden, revealed on sink). Click to fire on enemy grid (only on your turn). Shot result toast notification (Hit / Miss / Sunk + ship name). Sunk ships revealed on enemy grid.
-
 ## Iteration 4
 - **Fleet Status Sidebar** — Both grids show a fleet status list: ship name, size, status (Afloat / Hit / Sunk). Own fleet shows damage received per ship. Opponent fleet shows sunk ships.
 
