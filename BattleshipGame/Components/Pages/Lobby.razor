@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject GameSessionService SessionService
 @inject NavigationManager Nav
+@inject PlayerCircuitTracker CircuitTracker
 @implements IDisposable
 
 <PageTitle>Lobby — Battleship</PageTitle>
@@ -126,6 +127,11 @@
                 return;
             }
         }
+
+        // Register circuit → player mapping for disconnect detection
+        CircuitTracker.SessionCode = _session.Code;
+        CircuitTracker.PlayerName = playerName;
+        CircuitTracker.Token = connectionId;
 
         _session.StateChanged += OnSessionStateChanged;
         CheckForAutoNavigate();

@@ -4,11 +4,31 @@
 @using BattleshipGame.Services
 @inject GameSessionService SessionService
 @inject NavigationManager Nav
+@inject PlayerCircuitTracker CircuitTracker
 @implements IDisposable
 
 <PageTitle>Place Ships — Battleship</PageTitle>
 
 <div class="placement-screen">
+
+    @* Disconnect banner — shown when the opponent's connection has dropped *@
+    @if (_session is not null && _error is null && IsOpponentDisconnected)
+    {
+        <div class="disconnect-banner @(IsOpponentDisconnectExpired ? "disconnect-expired" : "")">
+            @if (IsOpponentDisconnectExpired)
+            {
+                <span class="disconnect-icon">⚠️</span>
+                <span class="disconnect-msg">@_opponentName has left the game.</span>
+                <a href="/" class="btn btn-ghost disconnect-home-btn">← Back to Home</a>
+            }
+            else
+            {
+                <span class="disconnect-icon">📡</span>
+                <span class="disconnect-msg">@_opponentName has disconnected — waiting for them to reconnect…</span>
+            }
+        </div>
+    }
+
     @if (_session is null)
     {
         <div class="lobby-loading">
@@ -204,6 +224,11 @@
     private string? _error;
     private bool _navigated;
 
+    // ── Disconnect state ───────────────────────────────────────────────────
+
+    private bool IsOpponentDisconnected => _session?.IsOpponentDisconnected(_playerName) == true;
+    private bool IsOpponentDisconnectExpired => _session?.IsDisconnectExpired(_opponentName) == true;
+
     // Placement interaction state
     private ShipType? _selectedShipType;
     private bool _isHorizontal = true;
@@ -224,6 +249,16 @@
             _error = "Game session not found.";
             return;
         }
+
+        // Register circuit → player mapping so disconnect events are detected
+        CircuitTracker.SessionCode = Code;
+        CircuitTracker.PlayerName = _playerName;
+        CircuitTracker.Token = Token ?? "";
+
+        // If this player was previously disconnected, mark them as reconnected
+        var me = _session.GetPlayerByName(_playerName);
+        if (me?.IsDisconnected == true)
+            _session.MarkPlayerReconnected(_playerName, Token ?? "");
 
         RefreshState();
         _session.StateChanged += OnSessionStateChanged;

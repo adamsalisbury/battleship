@@ -2,11 +2,31 @@
 @rendermode InteractiveServer
 @inject GameSessionService SessionService
 @inject NavigationManager Nav
+@inject PlayerCircuitTracker CircuitTracker
 @implements IDisposable
 
 <PageTitle>Battle — Battleship</PageTitle>
 
 <div class="battle-screen">
+
+    @* Disconnect banner — shown when the opponent's connection has dropped *@
+    @if (_session is not null && _error is null && IsOpponentDisconnected)
+    {
+        <div class="disconnect-banner @(IsOpponentDisconnectExpired ? "disconnect-expired" : "")">
+            @if (IsOpponentDisconnectExpired)
+            {
+                <span class="disconnect-icon">⚠️</span>
+                <span class="disconnect-msg">@_opponentName has left the game.</span>
+                <a href="/" class="btn btn-ghost disconnect-home-btn">← Back to Home</a>
+            }
+            else
+            {
+                <span class="disconnect-icon">📡</span>
+                <span class="disconnect-msg">@_opponentName has disconnected — game paused. Waiting for them to reconnect…</span>
+            }
+        </div>
+    }
+
     @if (_session is null)
     {
         <div class="lobby-loading">
@@ -25,10 +45,14 @@
     {
         <!-- Turn indicator -->
         <div class="battle-header">
-            <div class="turn-indicator @(IsMyTurn ? "my-turn" : "their-turn")">
+            <div class="turn-indicator @(IsMyTurn && !IsOpponentDisconnected ? "my-turn" : "their-turn")">
                 @if (_session.Phase == GamePhase.Finished)
                 {
                     <span>⚓ Battle Over</span>
+                }
+                else if (IsOpponentDisconnected)
+                {
+                    <span>⏸️ Game paused — @_opponentName disconnected</span>
                 }
                 else if (IsMyTurn)
                 {
@@ -155,7 +179,7 @@
             <div class="grid-section enemy-grid-section">
                 <h3 class="grid-title">Enemy Waters — @_opponentName</h3>
                 <p class="grid-hint">
-                    @if (_session.Phase == GamePhase.Finished)
+                    @if (_session!.Phase == GamePhase.Finished)
                     {
                         <span>Battle concluded</span>
                     }
@@ -347,6 +371,10 @@
 
     private bool IsMyTurn => _session?.ActivePlayer?.Name == _playerName;
 
+    // ─── Disconnect state ─────────────────────────────────────────────────────
+    private bool IsOpponentDisconnected => _session?.IsOpponentDisconnected(_playerName) == true;
+    private bool IsOpponentDisconnectExpired => _session?.IsDisconnectExpired(_opponentName) == true;
+
     // ─── Result screen properties ─────────────────────────────────────────────
     private bool IsWinner => _session?.Winner?.Name == _playerName;
     private string WinnerName => _session?.Winner?.Name ?? "";
@@ -375,6 +403,17 @@
         var opponent = _playerName == _session.Host?.Name ? _session.Guest : _session.Host;
         _opponentName = opponent?.Name ?? "Opponent";
 
+        // Register circuit → player mapping for disconnect detection
+        CircuitTracker.SessionCode = Code;
+        CircuitTracker.PlayerName = _playerName;
+        CircuitTracker.Token = Token ?? "";
+
+        // Handle manual reconnect: if this player was previously marked as disconnected,
+        // clear the flag now that they have navigated back to the game URL.
+        var me = _session.GetPlayerByName(_playerName);
+        if (me?.IsDisconnected == true)
+            _session.MarkPlayerReconnected(_playerName, Token ?? "");
+
         _session.StateChanged += OnSessionStateChanged;
     }
 
@@ -397,6 +436,8 @@
     {
         if (!IsMyTurn || _session is null) return;
         if (_session.Phase != GamePhase.Battle) return;
+        // Game is paused while the opponent is disconnected — do not allow shots
+        if (IsOpponentDisconnected) return;
 
         var enemyBoard = _session.GetOpponentBoard(_playerName);
         if (enemyBoard is null) return;
@@ -487,8 +528,8 @@
             return "cell-enemy-hit";
         }
 
-        // Unknown cell — targetable when it's my turn
-        return IsMyTurn && _session.Phase == GamePhase.Battle
+        // Unknown cell — targetable only when it's my turn AND opponent is connected
+        return IsMyTurn && _session.Phase == GamePhase.Battle && !IsOpponentDisconnected
             ? "cell-enemy-unknown cell-enemy-targetable"
             : "cell-enemy-unknown";
     }
