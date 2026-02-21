@@ -41,6 +41,55 @@
             </div>
         </div>
 
+        <!-- Shot history bar -->
+        <div class="shot-history-bar @(RecentShots.Count == 0 ? "shot-history-empty" : "")">
+            @if (RecentShots.Count == 0)
+            {
+                <span class="shot-history-placeholder">No shots fired yet</span>
+            }
+            else
+            {
+                <span class="shot-history-label">Recent shots:</span>
+                <div class="shot-history-list">
+                    @for (int si = 0; si < RecentShots.Count; si++)
+                    {
+                        var shot = RecentShots[si];
+                        var isLatest = si == 0;
+                        var coord = FormatCoord(shot.Row, shot.Col);
+                        var chipClass = shot.Result switch
+                        {
+                            ShotResult.Miss => "shot-chip-miss",
+                            ShotResult.Hit  => "shot-chip-hit",
+                            ShotResult.Sunk => "shot-chip-sunk",
+                            _               => ""
+                        };
+                        var icon = shot.Result switch
+                        {
+                            ShotResult.Miss => "💧",
+                            ShotResult.Hit  => "🔥",
+                            ShotResult.Sunk => "💥",
+                            _               => ""
+                        };
+                        <div class="shot-chip @chipClass @(isLatest ? "shot-chip-latest" : "")">
+                            <span class="shot-chip-icon">@icon</span>
+                            <span class="shot-chip-coord">@coord</span>
+                            @if (isLatest)
+                            {
+                                var resultText = shot.Result switch
+                                {
+                                    ShotResult.Sunk => $"sank {shot.SunkShipName}!",
+                                    ShotResult.Hit  => "hit!",
+                                    ShotResult.Miss => "miss.",
+                                    _               => ""
+                                };
+                                <span class="shot-chip-detail">@shot.ShooterName — @resultText</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
         <!-- Shot result toast -->
         @if (_toastMessage is not null)
         {
@@ -277,6 +326,16 @@
             });
         }, null, 3500, System.Threading.Timeout.Infinite);
     }
+
+    // ─── Shot history helpers ─────────────────────────────────────────────────
+
+    /// <summary>The 5 most recent shots, newest first, for the shot history bar.</summary>
+    private List<ShotRecord> RecentShots =>
+        _session?.ShotHistory.AsEnumerable().Reverse().Take(5).ToList() ?? [];
+
+    /// <summary>Formats a grid coordinate as a human-readable string, e.g. "B7".</summary>
+    private static string FormatCoord(int row, int col) =>
+        $"{GridConstants.ColumnLabels[col]}{row + 1}";
 
     // ─── Cell class helpers ───────────────────────────────────────────────────
 

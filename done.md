@@ -81,6 +81,24 @@
 
 ---
 
+## Iteration 5 — Shot History Bar
+**Date:** 2026-02-21
+
+### What was done
+- Added a shot history bar to `Battle.razor` positioned between the turn indicator and the battle grids.
+- Displays the last 5 shots, newest first, as coloured chips:
+  - **Most recent chip** (`.shot-chip-latest`): fully opaque, slightly larger, shows full description: icon + coordinate + "{ShooterName} — {result}" (e.g. "🔥 B7  Alice — hit!").
+  - **Older chips**: show icon + coordinate only; fade progressively (68% → 50% → 35% → 18% opacity) so the player's eye is drawn to the newest shot.
+  - **Colour coding**: miss = grey, hit = orange, sunk = red — matching the toast colours.
+- Before any shots: a placeholder "No shots fired yet" in italic muted text.
+- `RecentShots` computed property added to `@code` block (reads `ShotHistory`, reverses, takes 5).
+- `FormatCoord(int row, int col)` static helper added; produces Battleship-standard notation e.g. "B7".
+- ~90 lines of CSS added to `app.css`: `.shot-history-bar`, `.shot-history-list`, `.shot-chip` and variants.
+- Razor parser note: avoid `@{}` code blocks inside outer `@if/else {}` branches; compute data in `@code` properties instead.
+- Build: 0 warnings, 0 errors. Tests: 31/31 passing.
+
+---
+
 ## Iteration 4 — Fleet Status Sidebar
 **Date:** 2026-02-21
 

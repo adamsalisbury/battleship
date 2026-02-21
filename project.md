@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 4 complete: Fleet status sidebars added to the battle screen. Below the own grid: a compact panel showing all 5 own ships with coloured indicator, ship name, damage pips (intact = ship colour, hit = red), and Afloat / Damaged / Sunk badges. Below the enemy grid: a matching panel showing each enemy ship as Active (greyed badge) or Sunk (red badge with darkened pips), without revealing unsunk damage counts. Sunk rows are visually dimmed; Damaged rows get a subtle amber background tint.
+- Iteration 5 complete: Shot history bar added to the battle screen. Positioned between the turn indicator and the grids, it shows the last 5 shots as coloured chips (newest first). The most recent shot displays a full description ("Alice — hit!"), while older shots show just the icon and coordinate, fading progressively in opacity. Miss = grey, Hit = orange, Sunk = red. Before any shots are fired, a placeholder "No shots fired yet" appears. `RecentShots` computed property + `FormatCoord` helper added to `@code` block.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.

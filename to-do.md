@@ -2,9 +2,6 @@
 
 Items are prioritised top-to-bottom. Each item is one iteration.
 
-## Iteration 5
-- **Shot History / Last Shot Banner** — Recent shot banner below the turn indicator showing who shot where and what the result was.
-
 ## Iteration 6
 - **Win / Loss Screen** — Polished full-screen result overlay: winner's name, fleet summary (ships sunk / remaining), total shots fired, accuracy %. "Play Again" option offered to both players (requires both to accept before rematching).
 

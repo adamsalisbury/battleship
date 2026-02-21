@@ -1060,6 +1060,102 @@ a:hover { text-decoration: underline; }
 .fleet-status-row.fleet-status-damaged { background: rgba(240, 165, 0, 0.05); }
 
 /* ═══════════════════════════════════════════════════════════════
+   SHOT HISTORY BAR (Battle screen)
+   ═══════════════════════════════════════════════════════════════ */
+
+.shot-history-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 4px 24px;
+    min-height: 40px;
+}
+
+.shot-history-bar.shot-history-empty {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.shot-history-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.shot-history-list {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+/* Base chip — older shots use this opacity; overridden by nth-child and .shot-chip-latest */
+.shot-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    opacity: 0.45;
+    transition: opacity var(--transition-fast);
+    white-space: nowrap;
+}
+
+/* Latest (first) chip — full size and fully opaque */
+.shot-chip.shot-chip-latest {
+    opacity: 1;
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Progressive fade for older shots (newer chips appear first in DOM) */
+.shot-history-list .shot-chip:nth-child(2) { opacity: 0.68; }
+.shot-history-list .shot-chip:nth-child(3) { opacity: 0.48; }
+.shot-history-list .shot-chip:nth-child(4) { opacity: 0.30; }
+.shot-history-list .shot-chip:nth-child(5) { opacity: 0.18; }
+
+/* Miss chip */
+.shot-chip-miss {
+    background: rgba(30, 48, 80, 0.55);
+    border-color: var(--border-default);
+    color: var(--text-secondary);
+}
+
+/* Hit chip */
+.shot-chip-hit {
+    background: rgba(180, 60, 20, 0.18);
+    border-color: rgba(220, 100, 50, 0.35);
+    color: #d96530;
+}
+
+/* Sunk chip */
+.shot-chip-sunk {
+    background: rgba(160, 10, 10, 0.20);
+    border-color: rgba(220, 40, 40, 0.40);
+    color: var(--accent-red);
+}
+
+.shot-chip-icon { line-height: 1; flex-shrink: 0; }
+
+.shot-chip-coord {
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.02em;
+}
+
+.shot-chip-detail { font-size: 13px; }
+.shot-chip-latest .shot-chip-detail { font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════════
    KEYFRAMES
    ═══════════════════════════════════════════════════════════════ */
 
