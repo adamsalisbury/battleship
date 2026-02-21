@@ -2,9 +2,6 @@
 
 Items are prioritised top-to-bottom. Each item is one iteration.
 
-## Iteration 4
-- **Fleet Status Sidebar** — Both grids show a fleet status list: ship name, size, status (Afloat / Hit / Sunk). Own fleet shows damage received per ship. Opponent fleet shows sunk ships.
-
 ## Iteration 5
 - **Shot History / Last Shot Banner** — Recent shot banner below the turn indicator showing who shot where and what the result was.
 

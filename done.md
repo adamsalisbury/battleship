@@ -78,3 +78,20 @@
   - All cell state classes with pseudo-element markers.
   - Toast styles (`.shot-toast`, `.toast-miss`, `.toast-hit`, `.toast-sunk`) with `toastSlideIn` keyframe.
 - Build: 0 warnings, 0 errors. Tests: 31/31 passing.
+
+---
+
+## Iteration 4 — Fleet Status Sidebar
+**Date:** 2026-02-21
+
+### What was done
+- Added a compact fleet status panel below each 10×10 battle grid:
+  - **Own fleet panel**: lists all 5 ships in GridConstants.Fleet order. Each row shows a coloured identity dot, ship name (fixed 86px width for alignment), damage pips (ship colour = intact, red = hit), and a status badge (Afloat / Damaged / Sunk). Damaged rows get a subtle amber background tint; Sunk rows are dimmed to 55% opacity.
+  - **Enemy fleet panel**: lists all 5 fleet ship types. Each row shows identity dot, ship name, pips (ship colour = active, dark red = sunk), and a status badge (Active / Sunk). Only confirms sunk status — does not reveal hit count on unsunk ships.
+- Added helper methods to Battle.razor:
+  - `GetOwnFleetOrdered()` — returns own ships in fleet definition order via LINQ + OfType<Ship>().
+  - `GetOwnShipStatusClass(Ship)` / `GetOwnShipStatusLabel(Ship)` — switch expressions on IsSunk / HitCount.
+  - `IsEnemyShipSunk(ShipType)` — null-safe check on opponent board's ship list.
+- Added ~85 lines of CSS: `.fleet-status-panel`, `.fleet-status-title`, `.fleet-status-row`, `.fleet-status-color-dot`, `.color-dot-{name}`, `.fleet-status-name`, `.fleet-status-pips`, `.pip-hit`, `.pip-sunk`, `.fleet-status-badge`, `.badge-{afloat|damaged|sunk|active}`, row state modifiers.
+- Reused existing `.fleet-pip` size class (16×10 px) from placement CSS for visual consistency.
+- Build: 0 warnings, 0 errors. Tests: 31/31 passing.

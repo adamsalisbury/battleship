@@ -972,6 +972,94 @@ a:hover { text-decoration: underline; }
 .result-loss { font-size: 48px; color: var(--accent-red); }
 
 /* ═══════════════════════════════════════════════════════════════
+   FLEET STATUS PANEL (Battle screen)
+   ═══════════════════════════════════════════════════════════════ */
+
+.fleet-status-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fleet-status-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.fleet-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+/* Small coloured square that identifies the ship type at a glance */
+.fleet-status-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.color-dot-carrier    { background: var(--ship-carrier); }
+.color-dot-battleship { background: var(--ship-battleship); }
+.color-dot-cruiser    { background: var(--ship-cruiser); }
+.color-dot-submarine  { background: var(--ship-submarine); }
+.color-dot-destroyer  { background: var(--ship-destroyer); }
+
+.fleet-status-name {
+    font-size: 13px;
+    font-weight: 600;
+    width: 86px;
+    flex-shrink: 0;
+    color: var(--text-primary);
+}
+
+/* Pips container — reuses .fleet-pip dimensions (16×10 px) from placement CSS */
+.fleet-status-pips {
+    display: flex;
+    gap: 3px;
+    flex: 1;
+}
+
+/* Pip states for battle damage */
+.pip-hit  { background: rgba(220, 40,  40,  0.85); }
+.pip-sunk { background: rgba(160, 10,  10,  0.90); }
+
+.fleet-status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Own fleet badge variants */
+.badge-afloat  { background: rgba(34,  197,  94, 0.12); color: var(--accent-green); border: 1px solid rgba(34,  197,  94, 0.28); }
+.badge-damaged { background: rgba(240, 165,   0, 0.12); color: var(--accent-gold);  border: 1px solid rgba(240, 165,   0, 0.28); }
+.badge-sunk    { background: rgba(224,  48,  64, 0.12); color: var(--accent-red);   border: 1px solid rgba(224,  48,  64, 0.28); }
+
+/* Enemy fleet badge variant */
+.badge-active  { background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+
+/* Row visual state modifiers */
+.fleet-status-row.fleet-status-sunk    { opacity: 0.55; }
+.fleet-status-row.fleet-status-damaged { background: rgba(240, 165, 0, 0.05); }
+
+/* ═══════════════════════════════════════════════════════════════
    KEYFRAMES
    ═══════════════════════════════════════════════════════════════ */
 

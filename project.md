@@ -103,7 +103,7 @@ BattleshipGame/               ← Blazor Server single project
 ---
 
 ## Current State
-- Iteration 3 complete: Full interactive battle UI. Both players see their own 10×10 grid (ships + opponent's shots) and the enemy 10×10 grid (hits/misses, sunk ships revealed). Clicking an unknown enemy cell fires a shot (guarded by turn check). Shot result toast (💧 Miss / 🔥 Hit / 💥 Sunk) auto-dismisses after 3.5 seconds. Sunk enemy ships are visually revealed with ship colour + red tint. Game-over overlay displayed when all ships sunk.
+- Iteration 4 complete: Fleet status sidebars added to the battle screen. Below the own grid: a compact panel showing all 5 own ships with coloured indicator, ship name, damage pips (intact = ship colour, hit = red), and Afloat / Damaged / Sunk badges. Below the enemy grid: a matching panel showing each enemy ship as Active (greyed badge) or Sunk (red badge with darkened pips), without revealing unsunk damage counts. Sunk rows are visually dimmed; Damaged rows get a subtle amber background tint.
 
 ## Design Decisions
 - One shot per turn (no extra shot on hit) — simplest, most common ruleset.

@@ -71,6 +71,28 @@
                         }
                     }
                 </div>
+
+                <!-- Own fleet status -->
+                <div class="fleet-status-panel">
+                    <h4 class="fleet-status-title">Your Fleet</h4>
+                    @foreach (var ship in GetOwnFleetOrdered())
+                    {
+                        var ownStatusClass = GetOwnShipStatusClass(ship);
+                        var ownStatusLabel = GetOwnShipStatusLabel(ship);
+                        var ownShipNameLower = ship.Name.ToLower();
+                        <div class="fleet-status-row @ownStatusClass">
+                            <span class="fleet-status-color-dot color-dot-@ownShipNameLower"></span>
+                            <span class="fleet-status-name">@ship.Name</span>
+                            <span class="fleet-status-pips">
+                                @for (int i = 0; i < ship.Size; i++)
+                                {
+                                    <span class="fleet-pip @(i < ship.HitCount ? "pip-hit" : $"pip-{ownShipNameLower}")"></span>
+                                }
+                            </span>
+                            <span class="fleet-status-badge badge-@ownStatusLabel.ToLower()">@ownStatusLabel</span>
+                        </div>
+                    }
+                </div>
             </div>
 
             <!-- Divider -->
@@ -111,6 +133,32 @@
                             <div class="grid-cell @GetEnemyCellClass(r, c)"
                                  @onclick="() => OnEnemyCellClick(r, c)"></div>
                         }
+                    }
+                </div>
+
+                <!-- Enemy fleet status -->
+                <div class="fleet-status-panel">
+                    <h4 class="fleet-status-title">Enemy Fleet</h4>
+                    @foreach (var fleetEntry in GridConstants.Fleet)
+                    {
+                        var enemyShipType = fleetEntry.Type;
+                        var enemyShipName = fleetEntry.Name;
+                        var enemyShipSize = (int)fleetEntry.Type;
+                        var enemyIsSunk = IsEnemyShipSunk(enemyShipType);
+                        var enemyStatusLabel = enemyIsSunk ? "Sunk" : "Active";
+                        var enemyStatusClass = enemyIsSunk ? "fleet-status-sunk" : "fleet-status-active";
+                        var enemyShipNameLower = enemyShipName.ToLower();
+                        <div class="fleet-status-row @enemyStatusClass">
+                            <span class="fleet-status-color-dot color-dot-@enemyShipNameLower"></span>
+                            <span class="fleet-status-name">@enemyShipName</span>
+                            <span class="fleet-status-pips">
+                                @for (int i = 0; i < enemyShipSize; i++)
+                                {
+                                    <span class="fleet-pip @(enemyIsSunk ? "pip-sunk" : $"pip-{enemyShipNameLower}")"></span>
+                                }
+                            </span>
+                            <span class="fleet-status-badge badge-@enemyStatusLabel.ToLower()">@enemyStatusLabel</span>
+                        </div>
                     }
                 </div>
             </div>
@@ -276,6 +324,42 @@
         return IsMyTurn && _session.Phase == GamePhase.Battle
             ? "cell-enemy-unknown cell-enemy-targetable"
             : "cell-enemy-unknown";
+    }
+
+    // ─── Fleet status helpers ─────────────────────────────────────────────────
+
+    /// <summary>Returns own ships in fleet definition order (Carrier → Destroyer).</summary>
+    private IEnumerable<Ship> GetOwnFleetOrdered()
+    {
+        var board = _session?.GetOwnBoard(_playerName);
+        if (board is null) return [];
+        return GridConstants.Fleet
+            .Select(f => board.Ships.FirstOrDefault(s => s.Type == f.Type))
+            .OfType<Ship>();
+    }
+
+    /// <summary>CSS modifier class reflecting own ship's damage state.</summary>
+    private static string GetOwnShipStatusClass(Ship ship) => ship switch
+    {
+        { IsSunk: true }    => "fleet-status-sunk",
+        { HitCount: > 0 }  => "fleet-status-damaged",
+        _                   => "fleet-status-afloat"
+    };
+
+    /// <summary>Display label for own ship's damage state.</summary>
+    private static string GetOwnShipStatusLabel(Ship ship) => ship switch
+    {
+        { IsSunk: true }   => "Sunk",
+        { HitCount: > 0 }  => "Damaged",
+        _                  => "Afloat"
+    };
+
+    /// <summary>Returns true if the enemy ship of this type has been sunk.</summary>
+    private bool IsEnemyShipSunk(ShipType type)
+    {
+        if (_session is null) return false;
+        var board = _session.GetOpponentBoard(_playerName);
+        return board?.Ships.FirstOrDefault(s => s.Type == type)?.IsSunk == true;
     }
 
     // ─── Dispose ──────────────────────────────────────────────────────────────
